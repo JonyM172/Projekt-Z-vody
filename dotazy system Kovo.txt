@@ -1,0 +1,5 @@
+id závodníků v KIS a jejich export
+# jak je to s class prace s databazi? potrebuju ji a k cemu mi je?
+# jak mám pracoat s přihlášním?
+# jak zajistím unikátní id 
+# jak mám pracovat s dashboardy? mám je mít předpřipravené, nebo je vytářet na požadavek, respektive co bude připraveno dopředu?
