@@ -228,6 +228,7 @@ class PraceSDatabazi:
         """
         Odstraní duplicitní záznamy v jízdách i závodech.
         Nechá první výskyt, další shodné smaže.
+        dělá se po spuštění
         """
 
         def klic(zaznam):
@@ -262,7 +263,7 @@ class PraceSDatabazi:
         self._databaze_zavodu = nove_zavody
 
 
-        class Vyhledavani:
+class Vyhledavani:
     def __init__(self, databaze):
         self.db = databaze
 
