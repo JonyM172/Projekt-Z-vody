@@ -262,7 +262,8 @@ class PraceSDatabazi:
         self._databaze_zavodu = nove_zavody
 
 
-        class Vyhledavani:
+        
+class Vyhledavani:
     def __init__(self, databaze):
         self.db = databaze
 
@@ -282,18 +283,6 @@ class PraceSDatabazi:
             if j.zavodnik_obj.jmeno == jmeno and j.zavodnik_obj.prijmeni == prijmeni:
                 jizdy.append(j)
 
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
         return zavody, jizdy
 
     def dle_id_zavodnika(self, id_zavodnika):
@@ -307,18 +296,6 @@ class PraceSDatabazi:
         for j in self.db._databaze_jizd:
             if j.zavodnik_obj.id_osoby == id_zavodnika:
                 jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
 
         return zavody, jizdy
 
@@ -335,18 +312,6 @@ class PraceSDatabazi:
             if j.zavodnik_obj.skupina == skupina:
                 jizdy.append(j)
 
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
         return zavody, jizdy
 
     def dle_trate(self, jmeno_trati):
@@ -361,18 +326,6 @@ class PraceSDatabazi:
         for j in self.db._databaze_jizd:
             if j.trat.jmeno_trati == jmeno_trati:
                 jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
 
         return zavody, jizdy
 
@@ -393,18 +346,6 @@ class PraceSDatabazi:
             if j.datum == datum:
                 jizdy.append(j)
 
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
         return zavody, jizdy
 
     def za_obdobi(self, datum_od, datum_do):
@@ -419,18 +360,6 @@ class PraceSDatabazi:
         for j in self.db._databaze_jizd:
             if datum_od <= j.datum <= datum_do:
                 jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
 
         return zavody, jizdy
 
@@ -483,17 +412,5 @@ class PraceSDatabazi:
                 continue
 
             jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
 
         return zavody, jizdy
