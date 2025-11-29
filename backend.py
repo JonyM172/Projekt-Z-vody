@@ -414,4 +414,5 @@ class Vyhledavani:
             jizdy.append(j)
 
         return zavody, jizdy
-    print "Hello"
+    print "Backend načten."
+  
