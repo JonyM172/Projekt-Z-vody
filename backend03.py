@@ -91,136 +91,107 @@ class Zavod:
         
 # PRACE S DATABAZÍ 
 
-def uloz_zavodniky(databaze_zavodniku, path: str = None):
-    # Pokud nezadáme cestu, uloží se to do hlavního souboru ZAVODNICI_CSV
-    path = path or ZAVODNICI_CSV
-    
-    rows = []
-    for z in databaze_zavodniku.values():
-        rows.append({
-            "id_zavodnika": z.id_osoby,
-            "jmeno": z.jmeno,
-            "prijmeni": z.prijmeni,
-            "rok_nar": z.rok_nar,
-            "skupina": z.skupina
-        })
-    
-    # Uložíme (přepíšeme soubor čistými daty)
-    if rows:
-        df = pd.DataFrame(rows)
-        df.to_csv(path, index=False, mode='w')
-    else:
-        open(path, 'w').close()
-
 def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None):
-    # Zde 'path' může být cesta k externímu exportu (např. "C:/Downloads/export.csv")
+
     path = path or ZAVODNICI_CSV
-    
-    if os.path.exists(path):
+   
+    # Pokud ZAVODNICI_CSV neexistuje vrátí se původní databáze
+    if not os.path.exists(ZAVODNICI_CSV):
+        return databaze_zavodniku
+
+    try:
+        df = pd.read_csv(ZAVODNICI_CSV, dtype=str).fillna("")
+        #načteme CSV do DataFrame
+    except Exception as e:
+        print(f"WARN: Nepodařilo se načíst '{ZAVODNICI_CSV}': {e}")
+        return databaze_zavodniku
+
+
+    # Projdeme každý řádek v CSV
+    for _, r in df.iterrows():
+        idz = r["id_zavodnika"]
+
+        # Pokud závodník ještě není v databázi -> vytvoříme ho
+        if idz not in databaze_zavodniku:
+            novy = Zavodnik(
+                jmeno=r["jmeno"],
+                prijmeni=r["prijmeni"],
+                id_osoby=idz,
+                rok_nar=r["rok_nar"],
+                skupina=r["skupina"]
+            )
+            databaze_zavodniku[idz] = novy
+
+        # Pokud už v databázi je -> jen mu přepíšeme nové údaje z CSV
+        else:
+            z = databaze_zavodniku[idz]
+            z.jmeno = r["jmeno"]
+            z.prijmeni = r["prijmeni"]
+            z.rok_nar = r["rok_nar"]
+            z.skupina = r["skupina"]
+
+    return databaze_zavodniku
+
+def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None):
+    path = path or SKUPINY_CSV
+
+    # 1. Fáze: Načtení existujících skupin ze souboru (pokud existuje)
+    if os.path.exists(SKUPINY_CSV):
         try:
             df = pd.read_csv(path, dtype=str).fillna("")
             for _, r in df.iterrows():
-                idz = r["id_zavodnika"]
-                if idz not in databaze_zavodniku:
-                    databaze_zavodniku[idz] = Zavodnik(r["jmeno"], r["prijmeni"], idz, r["rok_nar"], r["skupina"])
-                else:
-                    z = databaze_zavodniku[idz]
-                    z.jmeno, z.prijmeni, z.rok_nar, z.skupina = r["jmeno"], r["prijmeni"], r["rok_nar"], r["skupina"]
-        except Exception as e:
-            print(f"WARN: {e}")
-
-    # --- OKAMŽITÉ ULOŽENÍ ---
-    uloz_zavodniky(databaze_zavodniku)
-
-
-    return databaze_zavodniku        
-
-# --- DEFINICE UKLÁDACÍ FUNKCE ---
-def uloz_skupiny(databaze_skupin, path: str = None):
-    path = path or SKUPINY_CSV
-    
-    rows = []
-    for s in databaze_skupin.values():
-        # Ukládáme jen název, členové se generují dynamicky
-        rows.append({
-            "jmeno_skupiny": s.jmeno_skupiny
-        })
-        
-    if rows:
-        df = pd.DataFrame(rows)
-        df.to_csv(path, index=False, mode='w')
-    else:
-        open(path, 'w').close()
-
-# --- NAČÍTACÍ FUNKCE (S AUTOMATICKÝM ULOŽENÍM) ---
-def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None):
-    cesta_k_nacteni = path or SKUPINY_CSV
-    
-    # 1. Načtení existujících skupin
-    if os.path.exists(cesta_k_nacteni):
-        try:
-            df = pd.read_csv(cesta_k_nacteni, dtype=str).fillna("")
-            for _, r in df.iterrows():
                 js = r["jmeno_skupiny"]
+                
                 if js not in databaze_skupin:
                     databaze_skupin[js] = Skupina(jmeno_skupiny=js)
-        except Exception: pass
+                
+        except Exception as e:
+            print(f"WARN: Nepodařilo se načíst '{SKUPINY_CSV}': {e}")
+            # Pokračujeme dál, i když načtení selže (vytvoříme skupiny ze závodníků)
 
-    # 2. Dopočítání členů a chybějících skupin ze závodníků
-    # Reset členů, aby se nekupili
+    # 2. Fáze: Propojení se závodníky a vytvoření chybějících skupin
+    # Nejdřív vyčistíme seznamy členů, abychom při znovunačtení neměli duplicity
     for g in databaze_skupin.values():
         g.clenove = []
 
-    for z in databaze_zavodniku.values():
-        if z.skupina:
-            if z.skupina not in databaze_skupin:
-                # Pokud skupina neexistuje, vytvoříme ji
-                databaze_skupin[z.skupina] = Skupina(jmeno_skupiny=z.skupina)
+    for zavodnik in databaze_zavodniku.values():
+        nazev_skupiny = zavodnik.skupina
+        
+        if nazev_skupiny: # Pokud má závodník vyplněnou skupinu
             
-            # Přidáme člena
-            databaze_skupin[z.skupina].clenove.append(z)
+            if nazev_skupiny not in databaze_skupin:
+                databaze_skupin[nazev_skupiny] = Skupina(jmeno_skupiny=nazev_skupiny)
+            # Pokud skupina neexistovala v CSV, vytvoříme ji teď (rozšíření databáze)
+            databaze_skupin[nazev_skupiny].clenove.append(zavodnik)
 
-    # --- OKAMŽITÉ ULOŽENÍ ---
-    uloz_skupiny(databaze_skupin)
-
-    
     return databaze_skupin
 
-# --- DEFINICE UKLÁDACÍ FUNKCE ---
-def uloz_trate(databaze_trati, path: str = None):
-    path = path or TRATI_CSV
-    
-    rows = []
-    for t in databaze_trati.values():
-        rows.append({
-            "jmeno_trati": t.jmeno_trati
-        })
-        
-    if rows:
-        df = pd.DataFrame(rows)
-        df.to_csv(path, index=False, mode='w')
-    else:
-        open(path, 'w').close()
-
-# --- NAČÍTACÍ FUNKCE (S AUTOMATICKÝM ULOŽENÍM) ---
 def nacti_a_sluc_trate(databaze_trati, path: str = None):
-    # Path může být externí soubor pro import
-    cesta_k_nacteni = path or TRATI_CSV
+  
+    path = path or TRATI_CSV
 
-    if os.path.exists(cesta_k_nacteni):
-        try:
-            df = pd.read_csv(cesta_k_nacteni, dtype=str).fillna("")
-            for _, r in df.iterrows():
-                jt = r["jmeno_trati"]
-                if jt not in databaze_trati:
-                    databaze_trati[jt] = Trat(jmeno_trati=jt)
-        except Exception as e:
-            print(f"WARN: {e}")
+    # Pokud TRATI_CSV neexistuje, vrátí se původní databáze
+    if not os.path.exists(TRATI_CSV):
+        return databaze_trati
 
-    # --- OKAMŽITÉ ULOŽENÍ ---
-    # Uložíme aktuální stav do hlavního souboru TRATI_CSV
-    uloz_trate(databaze_trati)
-    # ------------------------
+    try:
+        df = pd.read_csv(path, dtype=str).fillna("")
+        # načteme CSV do DataFrame
+    except Exception as e:
+        print(f"WARN: Nepodařilo se načíst '{TRATI_CSV}': {e}")
+        return databaze_trati
+
+    for _, r in df.iterrows():
+        jt = r["jmeno_trati"]
+
+        if jt not in databaze_trati:
+            nova = Trat(jmeno_trati=jt)
+            databaze_trati[jt] = nova
+
+
+        else:
+            t = databaze_trati[jt]
+            t.jmeno_trati = jt
 
     return databaze_trati
 
