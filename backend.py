@@ -181,58 +181,59 @@ class PraceSDatabazi:
     def __init__(self):
         self._databaze_jizd = []
         self._databaze_zavodu = []
+    
     def uloz_jizdu(self, testovaci_jizda):
-        
         self._databaze_jizd.append(testovaci_jizda)
-        nova_jizda = {
-            "id_zaznamu": testovaci_jizda.id_zaznamu,
-            "id_zavodnika": testovaci_jizda.zavodnik_obj.id_osoby,
-            "jmeno": testovaci_jizda.zavodnik_obj.jmeno,
-            "prijmeni": testovaci_jizda.zavodnik_obj.prijmeni,
-            "rok_nar": testovaci_jizda.zavodnik_obj.rok_nar,
-            "datum": testovaci_jizda.datum,
-            "trat": testovaci_jizda.trat.jmeno_trati,
-            "cas": testovaci_jizda.cas
-        }
-
-        df = pd.DataFrame([nova_jizda])
-        df.to_csv("databaze_jizd.csv",
-                  mode="a",                     # append
-                  header=not os.path.exists("databaze_jizd.csv"),
-                  index=False)
-
 
     def uloz_zavod(self, zavod):
+        self._databaze_zavodu.append(zavod) 
+        #uloží pouze do paměti
 
-        self._databaze_zavodu.append(zavod)
-        novy_zavod = {
-            "id_zaznamu": zavod.id_zaznamu,
-            "id_zavodnika": zavod.zavodnik_obj.id_osoby,
-            "jmeno": zavod.zavodnik_obj.jmeno,
-            "prijmeni": zavod.zavodnik_obj.prijmeni,
-            "rok_nar": zavod.zavodnik_obj.rok_nar,
-            "datum": zavod.datum,
-            "trat": zavod.trat.jmeno_trati,
-            "cas": zavod.cas,
-            "umisteni": zavod.umisteni
-        }
+    def uloz_data_do_csv(self):
+        # Uloží vše do CSV souborů — APPEND, zachová stará data
+        if self._databaze_jizd:
+            rows_jizdy = []
+            for j in self._databaze_jizd:
+                rows_jizdy.append({
+                    "id_zaznamu": j.id_zaznamu,
+                    "id_zavodnika": j.zavodnik_obj.id_osoby,
+                    "jmeno": j.zavodnik_obj.jmeno,
+                    "prijmeni": j.zavodnik_obj.prijmeni,
+                    "rok_nar": j.zavodnik_obj.rok_nar,
+                    "datum": j.datum,
+                    "trat": j.trat.jmeno_trati,
+                    "cas": j.cas
+                })
+            df_jizdy = pd.DataFrame(rows_jizdy)
+            df_jizdy.to_csv(JIZDY_CSV, mode="a", header=not os.path.exists(JIZDY_CSV), index=False)
 
-        df = pd.DataFrame([novy_zavod])
-        df.to_csv("databaze_zavodu.csv",
-                  mode="a",
-                  header=not os.path.exists("databaze_zavodu.csv"),
-                  index=False)
-        
+        # Uložení všech závodů
+        if self._databaze_zavodu:
+            rows_zavody = []
+            for z in self._databaze_zavodu:
+                rows_zavody.append({
+                    "id_zaznamu": z.id_zaznamu,
+                    "id_zavodnika": z.zavodnik_obj.id_osoby,
+                    "jmeno": z.zavodnik_obj.jmeno,
+                    "prijmeni": z.zavodnik_obj.prijmeni,
+                    "rok_nar": z.zavodnik_obj.rok_nar,
+                    "datum": z.datum,
+                    "trat": z.trat.jmeno_trati,
+                    "cas": z.cas,
+                    "umisteni": z.umisteni
+                })
+            df_zavody = pd.DataFrame(rows_zavody)
+            df_zavody.to_csv(ZAVODY_CSV, mode="a", header=not os.path.exists(ZAVODY_CSV), index=False)
+            # mode="a" — APPEND, zachová stará data
+        return True
 
     def deduplikuj_zaznamy(self):
         """
         Odstraní duplicitní záznamy v jízdách i závodech.
         Nechá první výskyt, další shodné smaže.
-        dělá se po spuštění
+        Poté uloží data do CSV.
         """
-
         def klic(zaznam):
-
             jmeno = zaznam.zavodnik_obj.jmeno
             prijmeni = zaznam.zavodnik_obj.prijmeni
             skupina = getattr(zaznam.zavodnik_obj, "skupina", "")
@@ -261,6 +262,10 @@ class PraceSDatabazi:
                 videne.add(k)
                 nove_zavody.append(z)
         self._databaze_zavodu = nove_zavody
+
+        # Uložíme deduplikovaná data do CSV
+        self.uloz_data_do_csv()
+        return True
 
 
 class Vyhledavani:
