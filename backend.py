@@ -128,66 +128,113 @@ def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None):
     return databaze_zavodniku
 
 
-def nacti_zaznamy(zdroj, databaze_zavodniku):
-    if not os.path.exists(JIZDY_CSV) and not os.path.exists(ZAVODY_CSV):
-        return zdroj
+def nacti_a_sluc_trate(databaze_trati, path: str = None):
+  
+    path = path or TRATI_CSV
+
+    # Pokud TRATI_CSV neexistuje, vrátí se původní databáze
+    if not os.path.exists(TRATI_CSV):
+        return databaze_trati
+
+    try:
+        df = pd.read_csv(path, dtype=str).fillna("")
+        # načteme CSV do DataFrame
+    except Exception as e:
+        print(f"WARN: Nepodařilo se načíst '{TRATI_CSV}': {e}")
+        return databaze_trati
+
+    for _, r in df.iterrows():
+        jt = r["jmeno_trati"]
+
+        if jt not in databaze_trati:
+            nova = Trat(jmeno_trati=jt)
+            databaze_trati[jt] = nova
+
+
+        else:
+            t = databaze_trati[jt]
+            t.jmeno_trati = jt
+
+    return databaze_trati
+
+def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str = None):
     
-    # --- načtení testovacích jízd ---
-    if os.path.exists(JIZDY_CSV):
-        df_j = pd.read_csv(JIZDY_CSV, dtype=str).fillna("")
+
+    databaze_jizd = []
+    databaze_zavodu = []
+
+    path_jizdy = path_jizdy or JIZDY_CSV
+    path_zavody = path_zavody or ZAVODY_CSV
+
+    # --- 2. ČÁST: Načtení jízd ---
+    if os.path.exists(path_jizdy):
+        try:
+            df_j = pd.read_csv(path_jizdy, dtype=str).fillna("")
+        except Exception as e:
+            print(f"WARN: Nepodařilo se načíst '{JIZDY_CSV}': {e}")
+            df_j = pd.DataFrame()
+
         for _, r in df_j.iterrows():
+            idz = r.get("id_zavodnika")
+            zavodnik_obj = databaze_zavodniku.get(idz)
 
-            zavodnik_obj = databaze_zavodniku.get(r["id_zavodnika"])
-            if zavodnik_obj is None:
-                continue
+            # Pokud existuje závodník, vytvoříme objekt a přidáme do seznamu
+            if zavodnik_obj:
+                j = TestovaciJizda(
+                    zavodnik_obj=zavodnik_obj,
+                    trat=Trat(r["trat"]),
+                    cas=r["cas"],
+                    datum=r["datum"],
+                    id_zaznamu=r["id_zaznamu"]
+                )
+                databaze_jizd.append(j)
+            else :
+                jm = r.get("jmeno", "?")
+                pr = r.get("prijmeni", "?")
+                print(f"WARN: Závodník {jm} {pr} (ID: {idz}) nenalezen. Závod (ID záznamu: {r.get('id_zaznamu')}) přeskočen.")
 
-            trat = Trat(r["trat"])
+    # --- 3. ČÁST: Načtení závodů ---
+    if os.path.exists(path_zavody):
+        try:
+            df_z = pd.read_csv(path_zavody, dtype=str).fillna("")
+        except Exception as e:
+            print(f"WARN: Nepodařilo se načíst '{ZAVODY_CSV}': {e}")
+            df_z = pd.DataFrame()
 
-            j = TestovaciJizda(
-                zavodnik_obj,
-                trat,
-                r["cas"],
-                r["datum"],
-                r["id_zaznamu"]
-            )
-            zdroj.uloz_jizdu(j)
-
-    # --- načtení závodů ---
-    if os.path.exists(ZAVODY_CSV):
-        df_z = pd.read_csv(ZAVODY_CSV, dtype=str).fillna("")
         for _, r in df_z.iterrows():
+            idz = r.get("id_zavodnika")
+            zavodnik_obj = databaze_zavodniku.get(idz)
 
-            zavodnik_obj = databaze_zavodniku.get(r["id_zavodnika"])
-            if zavodnik_obj is None:
-                continue
+            if zavodnik_obj:
+                z = Zavod(
+                    zavodnik_obj=zavodnik_obj,
+                    trat=Trat(r["trat"]),
+                    cas=r["cas"],
+                    umisteni=r.get("umisteni", ""),
+                    datum=r["datum"],
+                    id_zaznamu=r["id_zaznamu"]
+                )
+                databaze_zavodu.append(z)
+            else:
+                # Závodník nenalezen -> výpis varování a pokračujeme
+                jm = r.get("jmeno", "?")
+                pr = r.get("prijmeni", "?")
+                # ZDE JE PŘIDANÁ HLÁŠKA PRO ZÁVODY
+                print(f"WARN: Závodník {jm} {pr} (ID: {idz}) nenalezen. Závod (ID záznamu: {r.get('id_zaznamu')}) přeskočen.")
 
-            trat = Trat(r["trat"])
-
-            z = Zavod(
-                zavodnik_obj,
-                trat,
-                r["cas"],
-                r.get("umisteni", ""),
-                r["datum"],
-                r["id_zaznamu"]
-            )
-            zdroj.uloz_zavod(z)
-
-    # 4) Vrátíme zdroj naplněný starými záznamy
-    return zdroj
-
+    # 4. Vrátíme nově vytvořené a naplněné seznamy
+    return databaze_jizd, databaze_zavodu
 # jak je to s class prace s databazi? potrebuju ji a k cemu mi je?
 
 class PraceSDatabazi:
     def __init__(self):
-        self._databaze_jizd = []
-        self._databaze_zavodu = []
+        self._nove_jizdy = []
+        self._nove_zavody = []
     
     def uloz_jizdu(self, testovaci_jizda):
-        self._databaze_jizd.append(testovaci_jizda)
-
+        self._nove_jizdy.append(testovaci_jizda)
     def uloz_zavod(self, zavod):
-        self._databaze_zavodu.append(zavod)
+        self._nove_zavody.append(zavod)
 
     def _sestav_rows_jizdy(self):
         """Sestaví seznam řádků pro jízdy."""
