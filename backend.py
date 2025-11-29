@@ -17,6 +17,7 @@ ZAVODNICI_CSV = "zavodnici.csv"
 ZAZNAMY_CSV = "zaznamy.csv"
 ZAVODY_CSV = "databaze_zavodu.csv"
 JIZDY_CSV = "databaze_jizd.csv"
+TRATI_CSV = "trati.csv"
 
 
 # --- DEFINICE TŘÍD ---
@@ -70,14 +71,7 @@ class TestovaciJizda:
         self.datum = datum
         self.id_zaznamu = id_zaznamu
         self._stav = "Platný"           # Výchozí stav nové jizdy
-        # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
-
-    # def prirad_urednika(self, urednik_obj):
-    #     self._prirazeny_urednik = urednik_obj
-    #     self._stav = "V řízení"
-    # def zmen_stav(self,novy_stav):
-    #     self._stav=novy_stav
-
+        
 
 class Zavod:
     def __init__(self, zavodnik_obj, trat, cas, umisteni, datum, id_zaznamu):
@@ -92,14 +86,21 @@ class Zavod:
         
 # PRACE S DATABAZÍ 
 
-def nacti_a_sluc_zavodniky(databaze_zavodniku):
+def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None):
+
+    path = path or ZAVODNICI_CSV
    
-    # Pokud soubor neexistuje, není co načítat
+    # Pokud ZAVODNICI_CSV neexistuje vrátí se původní databáze
     if not os.path.exists(ZAVODNICI_CSV):
         return databaze_zavodniku
 
-    # Načteme soubor do DataFrame
-    df = pd.read_csv(ZAVODNICI_CSV, dtype=str).fillna("")
+    try:
+        df = pd.read_csv(ZAVODNICI_CSV, dtype=str).fillna("")
+        #načteme CSV do DataFrame
+    except Exception as e:
+        print(f"WARN: Nepodařilo se načíst '{ZAVODNICI_CSV}': {e}")
+        return databaze_zavodniku
+
 
     # Projdeme každý řádek v CSV
     for _, r in df.iterrows():
@@ -186,52 +187,63 @@ class PraceSDatabazi:
         self._databaze_jizd.append(testovaci_jizda)
 
     def uloz_zavod(self, zavod):
-        self._databaze_zavodu.append(zavod) 
-        #uloží pouze do paměti
+        self._databaze_zavodu.append(zavod)
+
+    def _sestav_rows_jizdy(self):
+        """Sestaví seznam řádků pro jízdy."""
+        rows = []
+        for j in self._databaze_jizd:
+            rows.append({
+                "id_zaznamu": j.id_zaznamu,
+                "id_zavodnika": j.zavodnik_obj.id_osoby,
+                "jmeno": j.zavodnik_obj.jmeno,
+                "prijmeni": j.zavodnik_obj.prijmeni,
+                "rok_nar": j.zavodnik_obj.rok_nar,
+                "datum": j.datum,
+                "trat": j.trat.jmeno_trati,
+                "cas": j.cas
+            })
+        return rows
+
+    def _sestav_rows_zavody(self):
+        """Sestaví seznam řádků pro závody."""
+        rows = []
+        for z in self._databaze_zavodu:
+            rows.append({
+                "id_zaznamu": z.id_zaznamu,
+                "id_zavodnika": z.zavodnik_obj.id_osoby,
+                "jmeno": z.zavodnik_obj.jmeno,
+                "prijmeni": z.zavodnik_obj.prijmeni,
+                "rok_nar": z.zavodnik_obj.rok_nar,
+                "datum": z.datum,
+                "trat": z.trat.jmeno_trati,
+                "cas": z.cas,
+                "umisteni": z.umisteni
+            })
+        return rows
 
     def uloz_data_do_csv(self):
-        # Uloží vše do CSV souborů — APPEND, zachová stará data
+
         if self._databaze_jizd:
-            rows_jizdy = []
-            for j in self._databaze_jizd:
-                rows_jizdy.append({
-                    "id_zaznamu": j.id_zaznamu,
-                    "id_zavodnika": j.zavodnik_obj.id_osoby,
-                    "jmeno": j.zavodnik_obj.jmeno,
-                    "prijmeni": j.zavodnik_obj.prijmeni,
-                    "rok_nar": j.zavodnik_obj.rok_nar,
-                    "datum": j.datum,
-                    "trat": j.trat.jmeno_trati,
-                    "cas": j.cas
-                })
+            rows_jizdy = self._sestav_rows_jizdy()
             df_jizdy = pd.DataFrame(rows_jizdy)
             df_jizdy.to_csv(JIZDY_CSV, mode="a", header=not os.path.exists(JIZDY_CSV), index=False)
 
-        # Uložení všech závodů
         if self._databaze_zavodu:
-            rows_zavody = []
-            for z in self._databaze_zavodu:
-                rows_zavody.append({
-                    "id_zaznamu": z.id_zaznamu,
-                    "id_zavodnika": z.zavodnik_obj.id_osoby,
-                    "jmeno": z.zavodnik_obj.jmeno,
-                    "prijmeni": z.zavodnik_obj.prijmeni,
-                    "rok_nar": z.zavodnik_obj.rok_nar,
-                    "datum": z.datum,
-                    "trat": z.trat.jmeno_trati,
-                    "cas": z.cas,
-                    "umisteni": z.umisteni
-                })
+            rows_zavody = self._sestav_rows_zavody()
             df_zavody = pd.DataFrame(rows_zavody)
             df_zavody.to_csv(ZAVODY_CSV, mode="a", header=not os.path.exists(ZAVODY_CSV), index=False)
-            # mode="a" — APPEND, zachová stará data
+
+        self._databaze_jizd = []
+        self._databaze_zavodu = []
+
         return True
 
     def deduplikuj_zaznamy(self):
         """
         Odstraní duplicitní záznamy v jízdách i závodech.
         Nechá první výskyt, další shodné smaže.
-        Poté uloží data do CSV.
+        Poté uloží data do CSV s mode="w" (PŘEPÍŠE).
         """
         def klic(zaznam):
             jmeno = zaznam.zavodnik_obj.jmeno
@@ -263,8 +275,17 @@ class PraceSDatabazi:
                 nove_zavody.append(z)
         self._databaze_zavodu = nove_zavody
 
-        # Uložíme deduplikovaná data do CSV
-        self.uloz_data_do_csv()
+
+        if self._databaze_jizd:
+            rows_jizdy = self._sestav_rows_jizdy()  # ← Sdílená metoda!
+            df_jizdy = pd.DataFrame(rows_jizdy)
+            df_jizdy.to_csv(JIZDY_CSV, mode="w", index=False)
+
+        if self._databaze_zavodu:
+            rows_zavody = self._sestav_rows_zavody()  # ← Sdílená metoda!
+            df_zavody = pd.DataFrame(rows_zavody)
+            df_zavody.to_csv(ZAVODY_CSV, mode="w", index=False)
+
         return True
 
 
@@ -503,4 +524,3 @@ class Vyhledavani:
         ))
 
         return zavody, jizdy
-    print "Hello"
