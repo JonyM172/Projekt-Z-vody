@@ -294,21 +294,89 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
 # jak je to s class prace s databazi? potrebuju ji a k cemu mi je?
 
 class PraceSDatabazi:
-    def __init__(self, databaze_jizd, databaze_zavodu):
+    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku):
+        
+
         self._databaze_jizd = databaze_jizd
         self._databaze_zavodu = databaze_zavodu
+        self.databaze_zavodniku = databaze_zavodniku
+
         self._nove_jizdy = []
         self._nove_zavody = []
     
+    # --- INTERNÍ UKLÁDÁNÍ (JEDEN ZÁZNAM) ---
     def uloz_jizdu(self, testovaci_jizda):
+        self._databaze_jizd.append(testovaci_jizda)
         self._nove_jizdy.append(testovaci_jizda)
+
     def uloz_zavod(self, zavod):
+        self._databaze_zavodu.append(zavod)
         self._nove_zavody.append(zavod)
 
-    def _sestav_rows_jizdy(self):
-        """Sestaví seznam řádků pro jízdy."""
+    # --- HROMADNÉ UKLÁDÁNÍ (PRO FRONTEND) ---
+    def uloz_hromadne_zaznamy(self, typ_zaznamu, seznam_raw_dat, jmeno_trati, datum, id_zaznamu_spolecne):
+        
+
+        objekt_trati = Trat(jmeno_trati)
+        ulozono_pocet = 0
+        chyby = []
+        
+        for polozka in seznam_raw_dat:
+            idz = polozka.get("id_zavodnika")
+            cas = polozka.get("cas", "")         # Může být prázdné
+            umisteni = polozka.get("umisteni", "") # Může být prázdné (jen u závodů)
+            
+            zavodnik = self.databaze_zavodniku.get(idz)
+            
+            if not zavodnik:
+                chyby.append(f"ID {idz}: Závodník nenalezen")
+                continue
+
+# --- LOGIKA PRO JÍZDU (TRÉNINK) ---
+# U tréninku je ČAS povinný
+            if typ_zaznamu == "jizda":
+
+                if cas:
+                    nova_jizda = TestovaciJizda(
+                        zavodnik_obj=zavodnik,
+                        trat=objekt_trati,
+                        cas=cas,
+                        datum=datum,
+                        id_zaznamu=id_zaznamu_spolecne
+                    )
+                    self.uloz_jizdu(nova_jizda)
+                    ulozono_pocet += 1
+                else:
+                    # Pokud není čas -> ignorujeme řádek
+                    continue 
+
+            # --- LOGIKA PRO ZÁVOD ---
+            elif typ_zaznamu == "zavod":
+                # U závodu stačí BUĎ čas, NEBO umístění (nebo oboje)
+                if cas or umisteni:
+                    novy_zavod = Zavod(
+                        zavodnik_obj=zavodnik,
+                        trat=objekt_trati,
+                        cas=cas,
+                        umisteni=umisteni,
+                        datum=datum,
+                        id_zaznamu=id_zaznamu_spolecne
+                    )
+                    self.uloz_zavod(novy_zavod)
+                    ulozono_pocet += 1
+                else:
+                    # Pokud není ani čas, ani umístění -> ignorujeme řádek
+                    continue
+        
+        if ulozono_pocet > 0:
+            self.uloz_data_do_csv()
+            
+        return ulozono_pocet, chyby
+
+    # --- POMOCNÉ METODY PRO CSV ---
+    def _sestav_rows_jizdy(self, zdrojovy_seznam):
         rows = []
-        for j in self._databaze_jizd:
+        for j in zdrojovy_seznam:
             rows.append({
                 "id_zaznamu": j.id_zaznamu,
                 "id_zavodnika": j.zavodnik_obj.id_osoby,
@@ -321,10 +389,9 @@ class PraceSDatabazi:
             })
         return rows
 
-    def _sestav_rows_zavody(self):
-        """Sestaví seznam řádků pro závody."""
+    def _sestav_rows_zavody(self, zdrojovy_seznam):
         rows = []
-        for z in self._databaze_zavodu:
+        for z in zdrojovy_seznam:
             rows.append({
                 "id_zaznamu": z.id_zaznamu,
                 "id_zavodnika": z.zavodnik_obj.id_osoby,
@@ -338,73 +405,75 @@ class PraceSDatabazi:
             })
         return rows
 
+    # --- ZÁPIS NA DISK (APPEND) ---
     def uloz_data_do_csv(self):
+        """Uloží BUFFER (novinky) pomocí mode='a'."""
+        
+        # Jízdy
+        if self._nove_jizdy:
+            rows = self._sestav_rows_jizdy(self._nove_jizdy)
+            df = pd.DataFrame(rows)
+            header_needed = not os.path.exists(JIZDY_CSV)
+            df.to_csv(JIZDY_CSV, mode="a", header=header_needed, index=False)
+            self._nove_jizdy = [] 
 
-        if self._databaze_jizd:
-            rows_jizdy = self._sestav_rows_jizdy()
-            df_jizdy = pd.DataFrame(rows_jizdy)
-            df_jizdy.to_csv(JIZDY_CSV, mode="a", header=not os.path.exists(JIZDY_CSV), index=False)
-
-        if self._databaze_zavodu:
-            rows_zavody = self._sestav_rows_zavody()
-            df_zavody = pd.DataFrame(rows_zavody)
-            df_zavody.to_csv(ZAVODY_CSV, mode="a", header=not os.path.exists(ZAVODY_CSV), index=False)
-
-        self._nove_jizdy = []
-        self._nove_zavody = []
+        # Závody
+        if self._nove_zavody:
+            rows = self._sestav_rows_zavody(self._nove_zavody)
+            df = pd.DataFrame(rows)
+            header_needed = not os.path.exists(ZAVODY_CSV)
+            df.to_csv(ZAVODY_CSV, mode="a", header=header_needed, index=False)
+            self._nove_zavody = [] 
 
         return True
 
+    # --- DEDUPLIKACE ---
     def deduplikuj_zaznamy(self):
-        """
-        Odstraní duplicitní záznamy v jízdách i závodech.
-        Nechá první výskyt, další shodné smaže.
-        Poté uloží data do CSV s mode="w" (PŘEPÍŠE).
-        """
+        """Vyčistí paměť a PŘEPÍŠE soubory (mode='w')."""
         def klic(zaznam):
-            jmeno = zaznam.zavodnik_obj.jmeno
-            prijmeni = zaznam.zavodnik_obj.prijmeni
-            skupina = getattr(zaznam.zavodnik_obj, "skupina", "")
-            datum = zaznam.datum
-            cas = getattr(zaznam, "cas", "")
-            trat = getattr(zaznam.trat, "jmeno_trati", "")
-            umisteni = getattr(zaznam, "umisteni", "")
-            return (jmeno, prijmeni, skupina, datum, cas, trat, umisteni)
+            return (
+                zaznam.zavodnik_obj.jmeno, 
+                zaznam.zavodnik_obj.prijmeni, 
+                zaznam.datum, 
+                getattr(zaznam, "cas", ""), 
+                getattr(zaznam.trat, "jmeno_trati", ""),
+                getattr(zaznam, "umisteni", "")
+            )
 
-        # --- deduplikace jízd ---
+        # 1. Jízdy
         videne = set()
-        nove_jizdy = []
+        ciste = []
         for j in self._databaze_jizd:
             k = klic(j)
             if k not in videne:
                 videne.add(k)
-                nove_jizdy.append(j)
-        self._databaze_jizd = nove_jizdy
+                ciste.append(j)
+        self._databaze_jizd = ciste
+        self._nove_jizdy = [] 
 
-        # --- deduplikace závodů ---
+        # 2. Závody
         videne = set()
-        nove_zavody = []
+        ciste = []
         for z in self._databaze_zavodu:
             k = klic(z)
             if k not in videne:
                 videne.add(k)
-                nove_zavody.append(z)
-        self._databaze_zavodu = nove_zavody
+                ciste.append(z)
+        self._databaze_zavodu = ciste
+        self._nove_zavody = []
 
-
+        # 3. Zápis (REWRITE)
         if self._databaze_jizd:
-            rows_jizdy = self._sestav_rows_jizdy()  # ← Sdílená metoda!
-            df_jizdy = pd.DataFrame(rows_jizdy)
-            df_jizdy.to_csv(JIZDY_CSV, mode="w", index=False)
-
+            rows = self._sestav_rows_jizdy(self._databaze_jizd)
+            pd.DataFrame(rows).to_csv(JIZDY_CSV, mode="w", index=False)
+        
         if self._databaze_zavodu:
-            rows_zavody = self._sestav_rows_zavody()  # ← Sdílená metoda!
-            df_zavody = pd.DataFrame(rows_zavody)
-            df_zavody.to_csv(ZAVODY_CSV, mode="w", index=False)
-
+            rows = self._sestav_rows_zavody(self._databaze_zavodu)
+            pd.DataFrame(rows).to_csv(ZAVODY_CSV, mode="w", index=False)
+        
         return True
-
-
+    
+    
 class Vyhledavani:
     def __init__(self, databaze):
         self.db = databaze
