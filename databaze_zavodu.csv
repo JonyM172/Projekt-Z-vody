@@ -1,0 +1,7 @@
+id_zaznamu,id_zavodnika,trat,cas,umisteni,datum
+ZAVOD_001,test_elite1,okruh 2 ovál,00:54,1.,2025-10-01
+ZAVOD_002,test_elite2,okruh 2 ovál,00:55,2.,2025-10-01
+ZAVOD_003,jirvas,okruh 3 pumptrack,00:45,1.,2025-10-05
+ZAVOD_004,tobcec,okruh 3 pumptrack,00:48,2.,2025-10-05
+ZAVOD_005,tommrk,okruh 3 pumptrack,,DNF,2025-10-05
+ZAVOD_ERR,neexistujici_zavodnik,okruh 3 pumptrack,01:00,1.,2025-10-05
