@@ -38,16 +38,16 @@ try:
     filtered_data = merged_data[["id_zavodnika", "trat", "datum", "cas"]]
     filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
 
-    # Add columns for display purposes only
-    display_data = filtered_data.copy()
-    display_data = pd.merge(display_data, zavodnici_data[['id_zavodnika', 'jmeno', 'prijmeni']], how='left', on='id_zavodnika')
+    # Merge data to include additional racer details for display only
+    display_data = pd.merge(filtered_data, zavodnici_data[["id_zavodnika", "jmeno", "prijmeni", "rok_nar", "skupina"]], how='left', on='id_zavodnika')
 
     # Reorder columns for display
-    display_data = display_data[["Pořadí", "jmeno", "prijmeni", "id_zavodnika", "trat", "datum", "cas"]]
+    display_data = display_data[["Pořadí", "jmeno", "prijmeni", "rok_nar", "skupina", "trat", "datum", "cas"]]
 
+    # Display the table without racer ID
     st.title("Testovací jízdy")
     st.write("### Přehled jízd se závodníky")
-    st.dataframe(display_data, use_container_width=True)
+    st.dataframe(display_data, use_container_width=True, hide_index=True)
 
 except FileNotFoundError as e:
     st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
