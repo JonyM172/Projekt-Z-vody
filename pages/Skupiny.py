@@ -12,9 +12,6 @@ st.title("Skupiny")
 # Dropdown menu for selecting a group
 selected_skupina = st.selectbox("Vyberte skupinu:", skupiny_list)
 
-# Display the selected group
-st.write(f"Vybraná skupina: {selected_skupina}")
-
 # Load the CSV files
 jizdy_csv_path = 'databaze_jizd.csv'
 zavodnici_csv_path = 'zavodnici.csv'
@@ -27,26 +24,7 @@ try:
     # Merge data based on racer ID
     merged_data = pd.merge(jizdy_data, zavodnici_data, how='left', on='id_zavodnika')
 
-    # Replace empty or NaN times with a high placeholder value for sorting
-    merged_data['cas'] = merged_data['cas'].replace('', np.nan)
-
-    # Convert time to seconds for sorting
-    def time_to_seconds(time_str):
-        if pd.isna(time_str):
-            return float('inf')
-        try:
-            parts = time_str.split(":")
-            minutes = int(parts[0])
-            seconds = float(parts[1].replace(",", "."))
-            return minutes * 60 + seconds
-        except ValueError:
-            return float('inf')
-
-    merged_data['cas_sort'] = merged_data['cas'].apply(time_to_seconds)
-
-    # Sort data by time (ascending)
-    merged_data = merged_data.sort_values(by=["cas_sort", "datum"]).drop(columns=['cas_sort'])
-
+      
     # Filter and rename columns for display
     filtered_data = merged_data[["id_zavodnika", "trat", "datum", "cas"]]
     filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
@@ -60,18 +38,24 @@ try:
     # Filter the data to show only the selected group
     filtered_display_data = display_data[display_data['skupina'] == selected_skupina]
 
+    # Dropdown menu for selecting a track within the selected group
+    available_tracks = filtered_display_data['trat'].unique()
+    selected_track = st.selectbox("Vyberte trať:", available_tracks)
+
+    # Filter the data to show only the selected track
+    final_filtered_data = filtered_display_data[filtered_display_data['trat'] == selected_track]
+
     # Drop the existing 'Pořadí' column if it exists
-    if 'Pořadí' in filtered_display_data.columns:
-        filtered_display_data = filtered_display_data.drop(columns=['Pořadí'])
+    if 'Pořadí' in final_filtered_data.columns:
+        final_filtered_data = final_filtered_data.drop(columns=['Pořadí'])
 
     # Recalculate the order for the filtered data
-    filtered_display_data = filtered_display_data.reset_index(drop=True)
-    filtered_display_data.insert(0, "Pořadí", range(1, len(filtered_display_data) + 1))
+    final_filtered_data = final_filtered_data.reset_index(drop=True)
+    final_filtered_data.insert(0, "Pořadí", range(1, len(final_filtered_data) + 1))
 
     # Display the filtered table
-    st.title("Testovací jízdy")
-    st.write("### Přehled jízd pro vybranou skupinu")
-    st.dataframe(filtered_display_data, use_container_width=True, hide_index=True)
+    st.write("### Přehled jízd pro vybranou skupinu a trať")
+    st.dataframe(final_filtered_data, use_container_width=True, hide_index=True)
 
 except FileNotFoundError as e:
     st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
