@@ -80,9 +80,6 @@ class PraceSDatabazi:
             rows.append({
                 "id_zaznamu": j.id_zaznamu,
                 "id_zavodnika": j.zavodnik_obj.id_osoby,
-                "jmeno": j.zavodnik_obj.jmeno,
-                "prijmeni": j.zavodnik_obj.prijmeni,
-                "rok_nar": j.zavodnik_obj.rok_nar,
                 "datum": j.datum,
                 "trat": j.trat.jmeno_trati,
                 "cas": j.cas
