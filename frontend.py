@@ -1,50 +1,69 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from backend import (
+    Zavodnik, Skupina, Trat, TestovaciJizda, Zavod,
+    uloz_zavodniky, nacti_a_sluc_zavodniky, uloz_skupiny, nacti_a_sluc_skupiny,
+    uloz_trate, nacti_a_sluc_trate, nacti_zaznamy,
+    PraceSDatabazi,  # Import the class containing deduplication logic
+)
 
-# Load the CSV files
-jizdy_csv_path = 'databaze_jizd.csv'
-zavodnici_csv_path = 'zavodnici.csv'
+# Initialize databases
 
-try:
-    # Load data from both CSV files with explicit handling of missing values
-    jizdy_data = pd.read_csv(jizdy_csv_path, dtype={"id_zavodnika": str, "trat": str, "datum": str, "cas": str})
-    zavodnici_data = pd.read_csv(zavodnici_csv_path, dtype={"id_zavodnika": str, "jmeno": str, "prijmeni": str, "rok_nar": int, "skupina": str})
+databaze_zavodniku = {}
+databaze_skupin = {}
+databaze_trati = {}
+databaze_jizd = []
+databaze_zavodu = []
 
-    # Merge data based on racer ID
-    merged_data = pd.merge(jizdy_data, zavodnici_data, how='left', left_on='id_zavodnika', right_on='id_zavodnika')
+# Load initial data
+databaze_zavodniku = nacti_a_sluc_zavodniky(databaze_zavodniku)
+databaze_skupin = nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku)
+databaze_trati = nacti_a_sluc_trate(databaze_trati)
+databaze_jizd, databaze_zavodu = nacti_zaznamy(databaze_zavodniku)
 
-    # Replace empty or NaN times with a high placeholder value for sorting
-    merged_data['cas'] = merged_data['cas'].replace('', np.nan)
+# Create an instance of PraceSDatabazi
+prace_s_databazi = PraceSDatabazi(databaze_jizd, databaze_zavodu, databaze_zavodniku, databaze_trati, databaze_skupin)
 
-    # Convert time to seconds for sorting
-    def time_to_seconds(time_str):
-        if pd.isna(time_str):
-            return float('inf')
-        try:
-            parts = time_str.split(":")
-            minutes = int(parts[0])
-            seconds = float(parts[1].replace(",", "."))
-            return minutes * 60 + seconds
-        except ValueError:
-            return float('inf')
+# Deduplicate records using the backend method
+prace_s_databazi.deduplikuj_zaznamy()
 
-    merged_data['cas_sort'] = merged_data['cas'].apply(time_to_seconds)
+# PAGES SETUP
 
-    # Sort data by time (ascending)
-    merged_data = merged_data.sort_values(by=["cas_sort", "datum"]).drop(columns=['cas_sort'])
+Vytvoř_záznam = st.Page(
+    page="pages/Vytvoř_záznam.py",
+    title="Vytvořit záznam",  
+    )
+Homepage = st.Page(
+    page="pages/Homepage.py",
+    title="Homepage",  
+    )
+TestovaciJizdy = st.Page(
+    page="pages/Testovací jízdy.py",
+    title="Testovací jízdy",  
+    )
+Závody = st.Page(
+    page="pages/Závody.py",
+    title="Závody",
+    )
+Trati = st.Page(
+    page="pages/Trati.py",
+    title="Trati",  
+    )
+Skupiny = st.Page(
+    page="pages/Skupiny.py",
+    title="Skupiny",  
+    )
 
-    # Filter and rename columns for display
-    filtered_data = merged_data[["jmeno", "prijmeni", "rok_nar", "trat", "datum", "cas"]]
-    filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
+# NAVIGATION SETUP
+PG = st.navigation(pages=[Homepage, Vytvoř_záznam, TestovaciJizdy, Závody, Trati, Skupiny])
 
-    st.title("Testovací jízdy")
-    st.write("### Přehled jízd se závodníky")
-    st.dataframe(filtered_data, use_container_width=True)
+# RUN NAVIGATION
+PG.run()
 
-except FileNotFoundError as e:
-    st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
-except KeyError as e:
-    st.error(f"Missing column: {e}. Please ensure the CSV files have the correct structure.")
-except ValueError as e:
-    st.error(f"Data loading error: {e}. Please check the CSV file format.")
+# Add a 'Save' button to trigger saving data to CSV files
+if st.button("Potvrdit a ukončit zápis"):
+    if prace_s_databazi.uloz_data_do_csv():
+        st.success("Data successfully saved to CSV files!")
+    else:
+        st.error("Failed to save data.")
