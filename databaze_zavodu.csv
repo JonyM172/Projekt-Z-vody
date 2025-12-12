@@ -1,0 +1,6 @@
+id_zaznamu,id_zavodnika,jmeno,prijmeni,rok_nar,datum,trat,cas,umisteni
+ZAVOD_001,test_elite1,Max,Verstappen,1997,2025-10-01,okruh 2 ovál,00:54,1.
+ZAVOD_002,test_elite2,Lewis,Hamilton,1985,2025-10-01,okruh 2 ovál,00:55,2.
+ZAVOD_003,jirvas,Jiří,Vašek,2016,2025-10-05,okruh 3 pumptrack,00:45,1.
+ZAVOD_004,tobcec,Tobiáš,Čečák,2016,2025-10-05,okruh 3 pumptrack,00:48,2.
+ZAVOD_005,tommrk,Tomáš,Mrkvička,2013,2025-10-05,okruh 3 pumptrack,,DNF
