@@ -291,7 +291,7 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
 
     # 4. Vrátíme nově vytvořené a naplněné seznamy
     return databaze_jizd, databaze_zavodu
-# jak je to s class prace s databazi? potrebuju ji a k cemu mi je?
+# jak je to s class prace s databazi? potrebuji ji a k cemu mi je?
 
 class PraceSDatabazi:
     def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku):
@@ -380,9 +380,6 @@ class PraceSDatabazi:
             rows.append({
                 "id_zaznamu": j.id_zaznamu,
                 "id_zavodnika": j.zavodnik_obj.id_osoby,
-                "jmeno": j.zavodnik_obj.jmeno,
-                "prijmeni": j.zavodnik_obj.prijmeni,
-                "rok_nar": j.zavodnik_obj.rok_nar,
                 "datum": j.datum,
                 "trat": j.trat.jmeno_trati,
                 "cas": j.cas

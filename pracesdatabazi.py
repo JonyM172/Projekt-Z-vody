@@ -1,14 +1,16 @@
 class PraceSDatabazi:
-    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku):
+    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, 
+                 databaze_trati, databaze_skupin):
         
-
         self._databaze_jizd = databaze_jizd
         self._databaze_zavodu = databaze_zavodu
         self.databaze_zavodniku = databaze_zavodniku
+        self.databaze_trati = databaze_trati
+        self.databaze_skupin = databaze_skupin
 
         self._nove_jizdy = []
         self._nove_zavody = []
-    
+
     # --- INTERNÍ UKLÁDÁNÍ (JEDEN ZÁZNAM) ---
     def uloz_jizdu(self, testovaci_jizda):
         self._databaze_jizd.append(testovaci_jizda)
@@ -20,16 +22,14 @@ class PraceSDatabazi:
 
     # --- HROMADNÉ UKLÁDÁNÍ (PRO FRONTEND) ---
     def uloz_hromadne_zaznamy(self, typ_zaznamu, seznam_raw_dat, jmeno_trati, datum, id_zaznamu_spolecne):
-        
-
         objekt_trati = Trat(jmeno_trati)
         ulozono_pocet = 0
         chyby = []
         
         for polozka in seznam_raw_dat:
             idz = polozka.get("id_zavodnika")
-            cas = polozka.get("cas", "")         # Může být prázdné
-            umisteni = polozka.get("umisteni", "") # Může být prázdné (jen u závodů)
+            cas = polozka.get("cas", "")
+            umisteni = polozka.get("umisteni", "")
             
             zavodnik = self.databaze_zavodniku.get(idz)
             
@@ -37,10 +37,7 @@ class PraceSDatabazi:
                 chyby.append(f"ID {idz}: Závodník nenalezen")
                 continue
 
-# --- LOGIKA PRO JÍZDU (TRÉNINK) ---
-# U tréninku je ČAS povinný
             if typ_zaznamu == "jizda":
-
                 if cas:
                     nova_jizda = TestovaciJizda(
                         zavodnik_obj=zavodnik,
@@ -55,9 +52,7 @@ class PraceSDatabazi:
                     # Pokud není čas -> ignorujeme řádek
                     continue 
 
-            # --- LOGIKA PRO ZÁVOD ---
             elif typ_zaznamu == "zavod":
-                # U závodu stačí BUĎ čas, NEBO umístění (nebo oboje)
                 if cas or umisteni:
                     novy_zavod = Zavod(
                         zavodnik_obj=zavodnik,
@@ -91,6 +86,7 @@ class PraceSDatabazi:
             })
         return rows
 
+
     def _sestav_rows_zavody(self, zdrojovy_seznam):
         rows = []
         for z in zdrojovy_seznam:
@@ -107,11 +103,10 @@ class PraceSDatabazi:
             })
         return rows
 
-    # --- ZÁPIS NA DISK (APPEND) ---
+    # --- ZÁPIS NA DISK ---
     def uloz_data_do_csv(self):
-        """Uloží BUFFER (novinky) pomocí mode='a'."""
-        
-        # Jízdy
+
+        #jizdty
         if self._nove_jizdy:
             rows = self._sestav_rows_jizdy(self._nove_jizdy)
             df = pd.DataFrame(rows)
@@ -119,19 +114,17 @@ class PraceSDatabazi:
             df.to_csv(JIZDY_CSV, mode="a", header=header_needed, index=False)
             self._nove_jizdy = [] 
 
-        # Závody
+        # zavody
         if self._nove_zavody:
             rows = self._sestav_rows_zavody(self._nove_zavody)
             df = pd.DataFrame(rows)
             header_needed = not os.path.exists(ZAVODY_CSV)
             df.to_csv(ZAVODY_CSV, mode="a", header=header_needed, index=False)
             self._nove_zavody = [] 
-
         return True
 
-    # --- DEDUPLIKACE ---
+    # --- DEDUPLIKACE ZÁZNAMŮ ---
     def deduplikuj_zaznamy(self):
-        """Vyčistí paměť a PŘEPÍŠE soubory (mode='w')."""
         def klic(zaznam):
             return (
                 zaznam.zavodnik_obj.jmeno, 
@@ -142,7 +135,7 @@ class PraceSDatabazi:
                 getattr(zaznam, "umisteni", "")
             )
 
-        # 1. Jízdy
+        # Jízdy
         videne = set()
         ciste = []
         for j in self._databaze_jizd:
@@ -153,7 +146,7 @@ class PraceSDatabazi:
         self._databaze_jizd = ciste
         self._nove_jizdy = [] 
 
-        # 2. Závody
+        # Závody
         videne = set()
         ciste = []
         for z in self._databaze_zavodu:
@@ -164,7 +157,7 @@ class PraceSDatabazi:
         self._databaze_zavodu = ciste
         self._nove_zavody = []
 
-        # 3. Zápis (REWRITE)
+        # Zápis
         if self._databaze_jizd:
             rows = self._sestav_rows_jizdy(self._databaze_jizd)
             pd.DataFrame(rows).to_csv(JIZDY_CSV, mode="w", index=False)
@@ -172,5 +165,4 @@ class PraceSDatabazi:
         if self._databaze_zavodu:
             rows = self._sestav_rows_zavody(self._databaze_zavodu)
             pd.DataFrame(rows).to_csv(ZAVODY_CSV, mode="w", index=False)
-        
         return True
