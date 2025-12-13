@@ -1,4 +1,5 @@
 # --- IMPORTY (potřebné pro práci se soubory a CSV) ---
+import shutil
 import os
 import pandas as pd
 import streamlit as st
@@ -463,6 +464,7 @@ class PraceSDatabazi:
             self.uloz_data_do_csv()
             
         return ulozono_pocet, chyby
+    
 
     # --- POMOCNÉ METODY PRO CSV ---
     def _sestav_rows_jizdy(self, zdrojovy_seznam):
@@ -476,7 +478,6 @@ class PraceSDatabazi:
                 "cas": j.cas
             })
         return rows
-
 
     def _sestav_rows_zavody(self, zdrojovy_seznam):
         rows = []
@@ -512,6 +513,55 @@ class PraceSDatabazi:
             header_needed = not os.path.exists(ZAVODY_CSV)
             df.to_csv(ZAVODY_CSV, mode="a", header=header_needed, index=False)
             self._nove_zavody = [] 
+        return True
+    
+    def prepis_soubor_jizd(self):
+        """
+        Bezpečně přepíše CSV soubor.
+        1. Vytvoří zálohu (.bak) původního souboru.
+        2. Zkontroluje, zda nechceme omylem smazat všechna data.
+        """
+        
+        # --- POJISTKA 1: VYTVOŘENÍ ZÁLOHY ---
+        if os.path.exists(JIZDY_CSV):
+            try:
+                # Vytvoří kopii: databaze_jizd.csv -> databaze_jizd.csv.bak
+                shutil.copyfile(JIZDY_CSV, JIZDY_CSV + ".bak")
+            except Exception as e:
+                print(f"WARN: Nepodařilo se vytvořit zálohu: {e}")
+
+        # Příprava dat
+        rows = []
+        for j in self._databaze_jizd:
+            rows.append({
+                "id_zaznamu": j.id_zaznamu,
+                "id_zavodnika": j.zavodnik_obj.id_osoby,
+                "datum": j.datum,
+                "trat": j.trat.jmeno_trati,
+                "cas": j.cas
+            })
+        
+        # --- POJISTKA 2: OCHRANA PROTI OMYLU (PRÁZDNÝ SEZNAM) ---
+        # Pokud je seznam prázdný, je to podezřelé. 
+        # Opravdu chceme smazat celou databázi?
+        if not rows:
+            # Zkontrolujeme, jestli původní soubor nebyl velký
+            # Pokud soubor existoval a měl data, a my teď chceme zapsat 0 řádků -> STOP.
+            puvodni_velikost = os.path.getsize(JIZDY_CSV) if os.path.exists(JIZDY_CSV) else 0
+            
+            if puvodni_velikost > 100: # 100 bytů je cca hlavička + 1 řádek
+                print("CRITICAL ERROR: Pokus o smazání celé databáze jízd zablokován!")
+                return False # Zápis se neprovede, data jsou zachráněna
+
+            # Pokud byl soubor malý nebo neexistoval, asi opravdu mažeme vše (nebo začínáme)
+            with open(JIZDY_CSV, 'w') as f:
+                f.write("id_zaznamu,id_zavodnika,datum,trat,cas\n")
+            return True
+
+        # --- ZÁPIS (pokud máme data) ---
+        df = pd.DataFrame(rows)
+        df.to_csv(JIZDY_CSV, index=False, mode='w')
+        
         return True
 
     # --- DEDUPLIKACE ZÁZNAMŮ ---
