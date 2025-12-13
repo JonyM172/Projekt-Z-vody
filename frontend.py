@@ -56,9 +56,13 @@ Skupiny = st.Page(
     page="pages/Skupiny.py",
     title="Skupiny",  
     )
+Vyhledávání = st.Page(
+    page="pages/Vyhledavani.py",
+    title="Vyhledávání",  
+    )
 
 # NAVIGATION SETUP
-PG = st.navigation(pages=[Homepage, Vytvoř_záznam, TestovaciJizdy, Závody, Trati, Skupiny])
+PG = st.navigation(pages=[Homepage, Vytvoř_záznam, TestovaciJizdy, Závody, Trati, Skupiny, Vyhledávání])
 
 # RUN NAVIGATION
 PG.run()
