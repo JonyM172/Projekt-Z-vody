@@ -4,7 +4,7 @@ import numpy as np
 from backend import (
     Zavodnik, Skupina, Trat, TestovaciJizda, Zavod,
     uloz_zavodniky, nacti_a_sluc_zavodniky, uloz_skupiny, nacti_a_sluc_skupiny,
-    uloz_trate, nacti_a_sluc_trate, nacti_zaznamy, zkontroluj_soubory,
+    uloz_trate, nacti_a_sluc_trate, nacti_zaznamy,
     PraceSDatabazi,  # Import the class containing deduplication logic
 )
 
@@ -16,17 +16,11 @@ databaze_trati = {}
 databaze_jizd = []
 databaze_zavodu = []
 
-zkontroluj_soubory()
-
 # Load initial data
 databaze_zavodniku = nacti_a_sluc_zavodniky(databaze_zavodniku)
 databaze_skupin = nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku)
 databaze_trati = nacti_a_sluc_trate(databaze_trati)
 databaze_jizd, databaze_zavodu = nacti_zaznamy(databaze_zavodniku)
-
-# Debugging: Display the contents of loaded databases
-#st.write("Databáze závodníků:", databaze_zavodniku)
-#st.write("Databáze jízd:", databaze_jizd)
 
 # Create an instance of PraceSDatabazi
 prace_s_databazi = PraceSDatabazi(databaze_jizd, databaze_zavodu, databaze_zavodniku, databaze_trati, databaze_skupin)
@@ -67,4 +61,9 @@ PG = st.navigation(pages=[Homepage, Vytvoř_záznam, TestovaciJizdy, Závody, Tr
 # RUN NAVIGATION
 PG.run()
 
-zkontroluj_soubory()
+# Add a 'Save' button to trigger saving data to CSV files
+if st.button("Potvrdit a ukončit zápis"):
+    if prace_s_databazi.uloz_data_do_csv():
+        st.success("Data successfully saved to CSV files!")
+    else:
+        st.error("Failed to save data.")

@@ -1,3 +1,5 @@
+import pandas as pd
+
 class PraceSDatabazi:
     def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, 
                  databaze_trati, databaze_skupin):
