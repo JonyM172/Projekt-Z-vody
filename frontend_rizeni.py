@@ -114,8 +114,6 @@ def uloz_zadosti_do_csv(urad_obj):
 
 # --- KROK 4: Inicializace aplikace ---
 
-inicializuj_databaze()
-
 # Načteme všechna data do st.session_state (spustí se jen jednou)
 if 'app_initialized' not in st.session_state:
     try:

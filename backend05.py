@@ -79,27 +79,6 @@ class Zavod:
         self._stav = "Platný"           # Výchozí stav závodu
         # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
         
-def zkontroluj_soubory():
-    """
-    Zkontroluje existenci všech očekávaných CSV souborů a vypíše varování, pokud některý chybí.
-    Program pokračuje dál i při chybějících souborech.
-    """
-    soubory = {
-        ZAVODNICI_CSV: "Závodníci",
-        SKUPINY_CSV: "Skupiny",
-        ZAVODY_CSV: "Závody",
-        JIZDY_CSV: "Jízdy",
-        TRATI_CSV: "Tratě"
-    }
-
-    for cesta, popis in soubory.items():
-        if not os.path.exists(cesta):
-            print(f"WARN: Soubor '{cesta}' ({popis}) nenalezen.")
-
-# Zavolání kontroly souborů při spuštění
-zkontroluj_soubory()
-
-
 # PRACE S DATABAZÍ 
 
 def uloz_zavodniky(databaze_zavodniku, path: str = None):
@@ -730,41 +709,3 @@ class Vyhledavani:
 
         # Použití nové pomocné metody pro řazení (DRY princip)
         return self._serad_vystup(zavody, jizdy)
-
-    def najdi_nejlepsi_vykony(jizdy_df):
-        """
-        Najde nejlepší výkon každého závodníka na dané trati.
-
-        Args:
-            jizdy_df (pd.DataFrame): DataFrame obsahující sloupce 'id_zavodnika', 'trat', a 'cas'.
-
-        Returns:
-            pd.DataFrame: DataFrame obsahující pouze nejlepší výkony.
-        """
-        if not all(col in jizdy_df.columns for col in ['id_zavodnika', 'trat', 'cas']):
-            raise ValueError("DataFrame musí obsahovat sloupce 'id_zavodnika', 'trat' a 'cas'.")
-
-        # Převod času na sekundy pro porovnání
-        def time_to_seconds(time_str):
-            try:
-                parts = time_str.split(":")
-                minutes = int(parts[0])
-                seconds = float(parts[1].replace(",", "."))
-                return minutes * 60 + seconds
-            except (ValueError, AttributeError):
-                return float('inf')
-
-        # Přidání pomocného sloupce pro porovnání
-        jizdy_df = jizdy_df.copy()
-        jizdy_df['cas_v_sekundach'] = jizdy_df['cas'].apply(time_to_seconds)
-
-        # Výběr nejlepšího výkonu pro každého závodníka na každé trati
-        nejlepsi_vykony = jizdy_df.loc[
-            jizdy_df.groupby(['id_zavodnika', 'trat'])['cas_v_sekundach'].idxmin()
-        ]
-
-        # Odstranění pomocného sloupce
-        nejlepsi_vykony = nejlepsi_vykony.drop(columns=['cas_v_sekundach'])
-
-        return nejlepsi_vykony
-
