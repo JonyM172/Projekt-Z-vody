@@ -1,6 +1,7 @@
 # --- IMPORTY (potřebné pro práci se soubory a CSV) ---
 import os
 import pandas as pd
+import streamlit as st
 
 # --- NÁZEV SOUBORU SE ZÁVODNÍKY ---
 ZAVODNICI_CSV = "zavodnici.csv"
@@ -99,6 +100,43 @@ def zkontroluj_soubory():
 # Zavolání kontroly souborů při spuštění
 zkontroluj_soubory()
 
+# --- PŘIDAT NA KONEC SOUBORU backend.py ---
+import streamlit as st
+
+def inicializuj_aplikaci():
+    """
+    Centrální bod pro načtení dat.
+    Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
+    Pokud data existují, nedělá nic.
+    """
+    # Kontrolujeme klíčový prvek, např. 'databaze_jizd'
+    if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
+        
+        # 1. Inicializace prázdných kontejnerů
+        # Používáme lokální proměnné, které pak uložíme do state
+        db_zavodnici = {}
+        db_skupiny = {}
+        db_trate = {}
+        
+        # 2. Načtení dat (využíváme existující funkce backendu)
+        # Poznámka: Funkce nacti_a_sluc... modifikují slovník in-place
+        nacti_a_sluc_zavodniky(db_zavodnici)
+        nacti_a_sluc_skupiny(db_skupiny, db_zavodnici)
+        nacti_a_sluc_trate(db_trate)
+        
+        # Načtení jízd a závodů (vrací seznamy)
+        db_jizdy, db_zavody = nacti_zaznamy(db_zavodnici)
+
+        # 3. Uložení do Streamlit Session State
+        st.session_state['databaze_zavodniku'] = db_zavodnici
+        st.session_state['databaze_skupin'] = db_skupiny
+        st.session_state['databaze_trati'] = db_trate
+        st.session_state['databaze_jizd'] = db_jizdy
+        st.session_state['databaze_zavodu'] = db_zavody
+        
+        # (Volitelné) Flag, že inicializace proběhla
+        st.session_state['data_nactena'] = True
+        
 
 # PRACE S DATABAZÍ 
 

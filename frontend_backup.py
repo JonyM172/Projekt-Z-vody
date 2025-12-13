@@ -8,30 +8,37 @@ from backend import (
     uloz_trate, nacti_a_sluc_trate, nacti_zaznamy,
     PraceSDatabazi,  # Import the class containing deduplication logic
 )
-
-# 1. Kontrola souborů a inicializace dat do paměti
 zkontroluj_soubory()
 inicializuj_aplikaci()
 
-# ==============================================================================
-# OPRAVA: Vytažení dat ze Session State
-# Musíme definovat proměnné databaze_..., jinak je PraceSDatabazi neuvidí.
-# ==============================================================================
-databaze_jizd = st.session_state['databaze_jizd']
-databaze_zavodu = st.session_state['databaze_zavodu']
-databaze_zavodniku = st.session_state['databaze_zavodniku']
-databaze_trati = st.session_state['databaze_trati']
-databaze_skupin = st.session_state['databaze_skupin']
+# Initialize databases
 
-# 2. Vytvoření instance pro práci s databází
-# Teď už proměnné existují, takže tento řádek proběhne bez chyby
+databaze_zavodniku = {}
+databaze_skupin = {}
+databaze_trati = {}
+databaze_jizd = []
+databaze_zavodu = []
+
+zkontroluj_soubory()
+
+# Load initial data
+databaze_zavodniku = nacti_a_sluc_zavodniky(databaze_zavodniku)
+databaze_skupin = nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku)
+databaze_trati = nacti_a_sluc_trate(databaze_trati)
+databaze_jizd, databaze_zavodu = nacti_zaznamy(databaze_zavodniku)
+
+# Debugging: Display the contents of loaded databases
+#st.write("Databáze závodníků:", databaze_zavodniku)
+#st.write("Databáze jízd:", databaze_jizd)
+
+# Create an instance of PraceSDatabazi
 prace_s_databazi = PraceSDatabazi(databaze_jizd, databaze_zavodu, databaze_zavodniku, databaze_trati, databaze_skupin)
 
-# 3. Deduplikace záznamů
+# Deduplicate records using the backend method
 prace_s_databazi.deduplikuj_zaznamy()
 
-
 # PAGES SETUP
+
 Vytvoř_záznam = st.Page(
     page="pages/Vytvoř_záznam.py",
     title="Vytvořit záznam",  
@@ -62,3 +69,5 @@ PG = st.navigation(pages=[Homepage, Vytvoř_záznam, TestovaciJizdy, Závody, Tr
 
 # RUN NAVIGATION
 PG.run()
+
+zkontroluj_soubory()

@@ -1,76 +1,61 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+from backend import Vyhledavani, inicializuj_aplikaci
+
+def parse_time_to_seconds(t):
+    try:
+        if pd.isna(t) or t in ['', '-', None]: return float('inf')
+        m, s = str(t).split(':')
+        return int(m) * 60 + float(s.replace(',', '.'))
+    except: return float('inf')
 
 st.title("Trati")
 
-# Load the data
-jizdy_csv_path = 'databaze_jizd.csv'
-zavodnici_csv_path = 'zavodnici.csv'
+# 1. ZAJIŠTĚNÍ DAT
+inicializuj_aplikaci()
 
-try:
-    # Load data from both CSV files
-    jizdy_data = pd.read_csv(jizdy_csv_path, dtype={"id_zavodnika": str, "trat": str, "datum": str, "cas": str})
-    zavodnici_data = pd.read_csv(zavodnici_csv_path, dtype={"id_zavodnika": str, "jmeno": str, "prijmeni": str, "rok_nar": str, "skupina": str})
+# 2. NAČTENÍ Z PAMĚTI
+databaze_jizd = st.session_state['databaze_jizd']
+databaze_zavodniku = st.session_state['databaze_zavodniku']
 
-    # Merge data based on racer ID
-    merged_data = pd.merge(jizdy_data, zavodnici_data, how='left', on='id_zavodnika')
+if not databaze_jizd:
+    st.info("Zatím nejsou k dispozici žádné jízdy.")
+else:
+    # 3. ZÍSKÁNÍ SEZNAMU TRATÍ
+    # Projdeme načtené jízdy a vytáhneme unikátní názvy tratí
+    trate_list = sorted(list(set(j.trat.jmeno_trati for j in databaze_jizd if j.trat)))
 
-    # Replace empty or NaN times with a high placeholder value for sorting
-    merged_data['cas'] = merged_data['cas'].replace('', np.nan)
+    if not trate_list:
+        st.warning("Jízdy nemají přiřazené žádné tratě.")
+    else:
+        # 4. VÝBĚR A FILTRACE
+        selected_track = st.selectbox("Vyberte trať:", trate_list)
+        
+        # Použijeme backend třídu pro pohodlné filtrování objektů
+        vyhledavac = Vyhledavani(databaze_jizd, [], databaze_zavodniku, {}, {})
+        _, vyfiltrovane_jizdy = vyhledavac.dle_trate(selected_track)
+        
+        if not vyfiltrovane_jizdy:
+             st.info("Pro tuto trať nejsou záznamy.")
+        else:
+            # Formátování výstupu
+            raw_data = vyhledavac._formatuj_vystup_pro_tabulku([], vyfiltrovane_jizdy)
+            
+            # Pandas tabulka
+            df = pd.DataFrame(raw_data, columns=["Datum", "Typ", "Jméno", "Příjmení", "Skupina", "Trať", "Čas", "Umístění"])
+            df['seconds'] = df['Čas'].apply(parse_time_to_seconds)
 
-    # Convert time to seconds for sorting
-    def time_to_seconds(time_str):
-        if pd.isna(time_str):
-            return float('inf')
-        try:
-            parts = time_str.split(":")
-            minutes = int(parts[0])
-            seconds = float(parts[1].replace(",", "."))
-            return minutes * 60 + seconds
-        except ValueError:
-            return float('inf')
+            # Checkbox Nejlepší
+            st.write("### Možnosti zobrazení")
+            if st.checkbox("Zobrazit pouze nejlepší pokusy závodníků"):
+                valid = df[df['seconds'] != float('inf')]
+                idx = valid.groupby(['Jméno', 'Příjmení'])['seconds'].idxmin()
+                df = df.loc[idx]
 
-    merged_data['cas_sort'] = merged_data['cas'].apply(time_to_seconds)
-
-    # Sort data by time (ascending)
-    merged_data = merged_data.sort_values(by=["cas_sort", "datum"]).drop(columns=['cas_sort'])
-
-    # Filter and rename columns for display
-    filtered_data = merged_data[["id_zavodnika", "trat", "datum", "cas"]]
-    filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
-
-    # Merge data to include additional racer details for display only
-    display_data = pd.merge(filtered_data, zavodnici_data[["id_zavodnika", "jmeno", "prijmeni", "rok_nar", "skupina"]], how='left', on='id_zavodnika')
-
-    # Reorder columns for display
-    display_data = display_data[["Pořadí", "jmeno", "prijmeni", "rok_nar", "skupina", "trat", "datum", "cas"]]
-
-    # Dropdown menu for selecting a track
-    available_tracks = display_data['trat'].unique()
-    selected_track = st.selectbox("Vyberte trať:", available_tracks)
-
-    # Filter the data to show only the selected track
-    track_filtered_data = display_data[display_data['trat'] == selected_track]
-
-    # Drop the existing 'Pořadí' column if it exists before recalculating
-    if 'Pořadí' in track_filtered_data.columns:
-        track_filtered_data = track_filtered_data.drop(columns=['Pořadí'])
-
-    # Dynamically calculate the order for display purposes only
-    track_filtered_data = track_filtered_data.reset_index(drop=True)
-    track_filtered_data.insert(0, "Pořadí", range(1, len(track_filtered_data) + 1))
-
-    # Remove the 'trať' column from the table
-    track_filtered_data = track_filtered_data.drop(columns=['trat'])
-
-    # Display the updated table with the track name in the title
-    st.title(f"{selected_track}")
-    st.dataframe(track_filtered_data, use_container_width=True, hide_index=True)
-
-except FileNotFoundError as e:
-    st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
-except KeyError as e:
-    st.error(f"Missing column: {e}. Please ensure the CSV files have the correct structure.")
-except ValueError as e:
-    st.error(f"Data loading error: {e}. Please check the CSV file format.")
+            # Zobrazení
+            df = df.sort_values(by=['seconds', 'Datum'])
+            df = df.reset_index(drop=True)
+            df.insert(0, 'Pořadí', range(1, len(df) + 1))
+            
+            st.write(f"### Výsledky: {selected_track}")
+            st.dataframe(df[['Pořadí', 'Jméno', 'Příjmení', 'Datum', 'Čas']], hide_index=True, use_container_width=True)

@@ -1,65 +1,70 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+from backend import Vyhledavani, inicializuj_aplikaci
 
-# Load skupiny from a CSV file
-skupiny_data = pd.read_csv('skupiny.csv')
-# Correct column name to match the CSV file
-skupiny_list = skupiny_data['jmeno_skupiny'].unique()
+def parse_time_to_seconds(t):
+    try:
+        if pd.isna(t) or t in ['', '-', None]: return float('inf')
+        m, s = str(t).split(':')
+        return int(m) * 60 + float(s.replace(',', '.'))
+    except: return float('inf')
 
 st.title("Skupiny")
 
-# Dropdown menu for selecting a group
-selected_skupina = st.selectbox("Vyberte skupinu:", skupiny_list)
+# 1. ZAJIŠTĚNÍ DAT
+inicializuj_aplikaci()
 
-# Load the CSV files
-jizdy_csv_path = 'databaze_jizd.csv'
-zavodnici_csv_path = 'zavodnici.csv'
+# 2. NAČTENÍ Z PAMĚTI
+databaze_jizd = st.session_state['databaze_jizd']
+databaze_zavodniku = st.session_state['databaze_zavodniku']
+databaze_skupin = st.session_state['databaze_skupin']
 
-try:
-    # Load data from both CSV files with explicit handling of missing values
-    jizdy_data = pd.read_csv(jizdy_csv_path, dtype={"id_zavodnika": str, "trat": str, "datum": str, "cas": str})
-    zavodnici_data = pd.read_csv(zavodnici_csv_path, dtype={"id_zavodnika": str, "jmeno": str, "prijmeni": str, "rok_nar": str, "skupina": str})
+# Získáme seznam skupin (buď z klíčů DB skupin, nebo unikátní skupiny závodníků)
+skupiny_list = sorted(list(databaze_skupin.keys()))
+if not skupiny_list:
+    # Fallback, kdyby DB skupin byla prázdná
+    skupiny_list = sorted(list(set(z.skupina for z in databaze_zavodniku.values() if z.skupina)))
 
-    # Merge data based on racer ID
-    merged_data = pd.merge(jizdy_data, zavodnici_data, how='left', on='id_zavodnika')
+if not skupiny_list:
+    st.warning("Nejsou definovány žádné skupiny.")
+else:
+    # 3. VÝBĚR SKUPINY
+    selected_group = st.selectbox("Vyberte skupinu:", skupiny_list)
+    
+    # Filtrace jízd podle skupiny (pomocí backendu)
+    vyhledavac = Vyhledavani(databaze_jizd, [], databaze_zavodniku, {}, databaze_skupin)
+    _, jizdy_skupiny = vyhledavac.dle_skupiny(selected_group)
+    
+    if not jizdy_skupiny:
+        st.info(f"Skupina {selected_group} nemá žádné jízdy.")
+    else:
+        # 4. VÝBĚR TRATĚ (Jen ty, které skupina jela)
+        trate_skupiny = sorted(list(set(j.trat.jmeno_trati for j in jizdy_skupiny)))
+        
+        if not trate_skupiny:
+            st.warning("Skupina sice má jízdy, ale bez názvu tratě.")
+        else:
+            selected_track = st.selectbox("Vyberte trať:", trate_skupiny)
+            
+            # Filtrace podle tratě (Python list comprehension nad už vyfiltrovanou skupinou)
+            finalni_jizdy = [j for j in jizdy_skupiny if j.trat.jmeno_trati == selected_track]
+            
+            # Formátování
+            raw_data = vyhledavac._formatuj_vystup_pro_tabulku([], finalni_jizdy)
+            df = pd.DataFrame(raw_data, columns=["Datum", "Typ", "Jméno", "Příjmení", "Skupina", "Trať", "Čas", "Umístění"])
+            df['seconds'] = df['Čas'].apply(parse_time_to_seconds)
 
-      
-    # Filter and rename columns for display
-    filtered_data = merged_data[["id_zavodnika", "trat", "datum", "cas"]]
-    filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
+            # Checkbox Nejlepší
+            st.write("### Možnosti zobrazení")
+            if st.checkbox("Zobrazit pouze nejlepší pokusy závodníků"):
+                valid = df[df['seconds'] != float('inf')]
+                idx = valid.groupby(['Jméno', 'Příjmení'])['seconds'].idxmin()
+                df = df.loc[idx]
 
-    # Merge data to include additional racer details for display only
-    display_data = pd.merge(filtered_data, zavodnici_data[["id_zavodnika", "jmeno", "prijmeni", "rok_nar", "skupina"]], how='left', on='id_zavodnika')
-
-    # Reorder columns for display
-    display_data = display_data[["Pořadí", "jmeno", "prijmeni", "rok_nar", "skupina", "trat", "datum", "cas"]]
-
-    # Filter the data to show only the selected group
-    filtered_display_data = display_data[display_data['skupina'] == selected_skupina]
-
-    # Dropdown menu for selecting a track within the selected group
-    available_tracks = filtered_display_data['trat'].unique()
-    selected_track = st.selectbox("Vyberte trať:", available_tracks)
-
-    # Filter the data to show only the selected track
-    final_filtered_data = filtered_display_data[filtered_display_data['trat'] == selected_track]
-
-    # Drop the existing 'Pořadí' column if it exists
-    if 'Pořadí' in final_filtered_data.columns:
-        final_filtered_data = final_filtered_data.drop(columns=['Pořadí'])
-
-    # Recalculate the order for the filtered data
-    final_filtered_data = final_filtered_data.reset_index(drop=True)
-    final_filtered_data.insert(0, "Pořadí", range(1, len(final_filtered_data) + 1))
-
-    # Display the filtered table
-    st.write("### Přehled jízd pro vybranou skupinu a trať")
-    st.dataframe(final_filtered_data, use_container_width=True, hide_index=True)
-
-except FileNotFoundError as e:
-    st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
-except KeyError as e:
-    st.error(f"Missing column: {e}. Please ensure the CSV files have the correct structure.")
-except ValueError as e:
-    st.error(f"Data loading error: {e}. Please check the CSV file format.")
+            # Zobrazení
+            df = df.sort_values(by=['seconds', 'Datum'])
+            df = df.reset_index(drop=True)
+            df.insert(0, 'Pořadí', range(1, len(df) + 1))
+            
+            st.write(f"### Výsledky: {selected_group} - {selected_track}")
+            st.dataframe(df[['Pořadí', 'Jméno', 'Příjmení', 'Datum', 'Čas']], hide_index=True, use_container_width=True)
