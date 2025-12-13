@@ -34,7 +34,7 @@ prace_s_databazi.deduplikuj_zaznamy()
 # PAGES SETUP
 Vytvoř_záznam = st.Page(
     page="pages/Vytvoř_záznam.py",
-    title="Vytvořit záznam",  
+    title="Vytvořit/upravit záznamy",  
     )
 Homepage = st.Page(
     page="pages/Homepage.py",
