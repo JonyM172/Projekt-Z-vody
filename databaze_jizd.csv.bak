@@ -91,10 +91,12 @@ JIZDA_087,doldan,2025-09-23,okruh 3 pumptrack,00:32.7
 JIZDA_088,svodan,2025-09-12,okruh 2 ovál,01:17.2
 JIZDA_089,svodan,2025-09-23,okruh 1 kolecko,00:46.7
 JIZDA_090,svodan,2025-09-15,okruh 2 ovál,01:19.0
-fa871f3f,doldan,2025-12-14,okruh 4 testovací trail,"1:00,0"
-fa871f3f,fiaver,2025-12-14,okruh 4 testovací trail,"1:00,0"
-fa871f3f,test_elite2,2025-12-14,okruh 4 testovací trail,"1:00,0"
 094e5198,test_elite1,2025-12-14,okruh 4 testovací trail,"0:59,7"
 02b5b119,marluk,2025-12-14,okruh 4 testovací trail,"1:50,5"
 44ff6b4f,promar,2025-12-14,okruh 4 testovací trail,"2:00,0"
 f4daf6aa,svoluc,2025-12-14,okruh 4 testovací trail,"2:05,3"
+1cc264aa,fiaver,2025-12-14,okruh 1 kolecko,"1:00,0"
+5f86fc1a,doldan,2025-12-14,okruh 1 kolecko,1
+5f86fc1a,fiaver,2025-12-14,okruh 1 kolecko,2
+5f86fc1a,test_elite2,2025-12-14,okruh 1 kolecko,3
+5f86fc1a,marluk,2025-12-14,okruh 1 kolecko,4
