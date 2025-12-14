@@ -1,0 +1,37 @@
+id_zaznamu,id_zavodnika,datum,trat,cas
+JIZDA_001,jirvas,2025-09-20,okruh 4 testovací trail,"01:40,2"
+JIZDA_002,tommrk,2025-09-20,okruh 4 testovací trail,"01:26,0"
+JIZDA_003,tomland,2025-09-20,okruh 4 testovací trail,"01:32,8"
+JIZDA_004,jonvac,2025-09-20,okruh 4 testovací trail,"01:34,9"
+JIZDA_005,esttom,2025-09-20,okruh 4 testovací trail,"01:37,9"
+JIZDA_006,davkra,2025-09-20,okruh 4 testovací trail,"01:44,4"
+JIZDA_007,samcub,2025-09-20,okruh 4 testovací trail,"01:45,2"
+JIZDA_008,jpnbou,2025-09-20,okruh 4 testovací trail,"01:45,6"
+JIZDA_009,adamul,2025-09-20,okruh 4 testovací trail,"01:47,0"
+JIZDA_010,olihab,2025-09-20,okruh 4 testovací trail,"01:50,3"
+JIZDA_011,felnyk,2025-09-20,okruh 4 testovací trail,"01:51,8"
+JIZDA_012,vilmur,2025-09-20,okruh 4 testovací trail,"01:56,2"
+JIZDA_013,vitjnu,2025-09-20,okruh 4 testovací trail,"01:59,0"
+JIZDA_014,lukbre,2025-09-20,okruh 4 testovací trail,"02:03,8"
+JIZDA_015,jakhan,2025-09-20,okruh 4 testovací trail,"02:20,6"
+JIZDA_016,davdyr,,okruh 4 testovací trail,
+JIZDA_017,bonmar,,okruh 4 testovací trail,
+JIZDA_018,antvlc,,okruh 4 testovací trail,
+JIZDA_019,antnov,2025-09-10,okruh 4 testovací trail,"01:40,0"
+JIZDA_020,niknov,2025-09-10,okruh 4 testovací trail,"02:10,0"
+JIZDA_021,tobcec,2025-09-10,okruh 4 testovací trail,"01:45,9"
+JIZDA_022,ondhlav,2025-09-10,okruh 4 testovací trail,"02:06,1"
+JIZDA_023,adacer,2025-09-10,okruh 4 testovací trail,"02:52,5"
+JIZDA_024,hugvei,2025-09-10,okruh 4 testovací trail,"03:03,1"
+JIZDA_ERR2,tommrk,2025-09-20,okruh 4 testovací trail,
+JIZDA_ERR3,jirvas,2025-09-20,neexistujici_trat_překlep,"02:00,0"
+JIZDA_NEW1,test_elite1,2025-09-20,okruh 2 ovál,"00:55,5"
+JIZDA_NEW2,test_elite2,2025-09-20,okruh 2 ovál,"00:56,0"
+513f7c71,jirvas,2025-12-14,okruh 1 kolecko,"0:50,5"
+81986616,jirvas,2025-12-14,okruh 4 testovací trail,"1:42,5"
+51be5a60,jirvas,2025-12-14,okruh 4 testovací trail,"1:45,2"
+accda37c,jirvas,2025-12-14,okruh 4 testovací trail,"1:45,9"
+93a81556,antnov,2025-12-14,okruh 4 testovací trail,"1:38,9"
+3804d711,jpnbou,2025-12-14,okruh 1 kolecko,"0:50,0"
+c90f2f9e,lukbre,2025-12-14,okruh 1 kolecko,0:45
+49d4970f,jakhan,2025-12-14,okruh 1 kolecko,0:35

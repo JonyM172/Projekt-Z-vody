@@ -1,57 +1,54 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+from backend import Vyhledavani, inicializuj_aplikaci
 
-# Load the CSV files
-jizdy_csv_path = 'databaze_jizd.csv'
-zavodnici_csv_path = 'zavodnici.csv'
+# Pomocná funkce pro převod času (čistě frontendová záležitost)
+def parse_time_to_seconds(t):
+    try:
+        if pd.isna(t) or t in ['', '-', None]: return float('inf')
+        m, s = str(t).split(':')
+        return int(m) * 60 + float(s.replace(',', '.'))
+    except: return float('inf')
 
-try:
-    # Load data from both CSV files with explicit handling of missing values
-    jizdy_data = pd.read_csv(jizdy_csv_path, dtype={"id_zavodnika": str, "trat": str, "datum": str, "cas": str})
-    zavodnici_data = pd.read_csv(zavodnici_csv_path, dtype={"id_zavodnika": str, "jmeno": str, "prijmeni": str, "rok_nar": str, "skupina": str})
+st.title("Testovací jízdy")
 
-    # Merge data based on racer ID
-    merged_data = pd.merge(jizdy_data, zavodnici_data, how='left', on='id_zavodnika')
+# --- KROK 1: ZÁCHRANNÁ SÍŤ PROTI F5 ---
+inicializuj_aplikaci()
 
-    # Replace empty or NaN times with a high placeholder value for sorting
-    merged_data['cas'] = merged_data['cas'].replace('', np.nan)
+# --- KROK 2: VYTAŽENÍ DAT Z PAMĚTI ---
+db_jizdy = st.session_state['databaze_jizd']
+db_zavodnici = st.session_state['databaze_zavodniku']
 
-    # Convert time to seconds for sorting
-    def time_to_seconds(time_str):
-        if pd.isna(time_str):
-            return float('inf')
-        try:
-            parts = time_str.split(":")
-            minutes = int(parts[0])
-            seconds = float(parts[1].replace(",", "."))
-            return minutes * 60 + seconds
-        except ValueError:
-            return float('inf')
+# --- KROK 3: LOGIKA STRÁNKY ---
+if not db_jizdy:
+    st.info("Zatím nejsou k dispozici žádné záznamy.")
+else:
+    # Inicializace vyhledávače (pouze pro formátování výstupu)
+    # Posíláme jen to, co potřebujeme, zbytek {} nebo []
+    vyhledavac = Vyhledavani(db_jizdy, [], db_zavodnici, {}, {})
+    
+    # Získání dat v textové podobě pro tabulku
+    raw_data = vyhledavac._formatuj_vystup_pro_tabulku([], db_jizdy)
+    
+    # Převod na DataFrame
+    cols = ["Datum", "Typ", "Jméno", "Příjmení", "Skupina", "Trať", "Čas", "Umístění"]
+    df = pd.DataFrame(raw_data, columns=cols)
+    
+    # Pomocný sloupec pro řazení
+    df['seconds'] = df['Čas'].apply(parse_time_to_seconds)
 
-    merged_data['cas_sort'] = merged_data['cas'].apply(time_to_seconds)
+    # UI: Checkbox
+    st.write("### Možnosti zobrazení")
+    if st.checkbox("Zobrazit pouze nejlepší pokusy závodníků na každé trati"):
+        # Logika filtrace
+        valid = df[df['seconds'] != float('inf')]
+        # Najdi indexy řádků s nejmenším časem pro (Jméno+Trať)
+        idx = valid.groupby(['Jméno', 'Příjmení', 'Trať'])['seconds'].idxmin()
+        df = df.loc[idx]
 
-    # Sort data by time (ascending)
-    merged_data = merged_data.sort_values(by=["cas_sort", "datum"]).drop(columns=['cas_sort'])
-
-    # Filter and rename columns for display
-    filtered_data = merged_data[["id_zavodnika", "trat", "datum", "cas"]]
-    filtered_data.insert(0, "Pořadí", range(1, len(filtered_data) + 1))
-
-    # Merge data to include additional racer details for display only
-    display_data = pd.merge(filtered_data, zavodnici_data[["id_zavodnika", "jmeno", "prijmeni", "rok_nar", "skupina"]], how='left', on='id_zavodnika')
-
-    # Reorder columns for display
-    display_data = display_data[["Pořadí", "jmeno", "prijmeni", "rok_nar", "skupina", "trat", "datum", "cas"]]
-
-    # Display the table without racer ID
-    st.title("Testovací jízdy")
-    st.write("### Přehled jízd se závodníky")
-    st.dataframe(display_data, use_container_width=True, hide_index=True)
-
-except FileNotFoundError as e:
-    st.error(f"File not found: {e.filename}. Please ensure all required files are in the correct directory.")
-except KeyError as e:
-    st.error(f"Missing column: {e}. Please ensure the CSV files have the correct structure.")
-except ValueError as e:
-    st.error(f"Data loading error: {e}. Please check the CSV file format.")
+    # Finální úprava a zobrazení
+    df = df.sort_values(by=['seconds', 'Datum'])
+    df.insert(0, 'Pořadí', range(1, len(df) + 1))
+    
+    final_cols = ['Pořadí', 'Jméno', 'Příjmení', 'Skupina', 'Trať', 'Datum', 'Čas']
+    st.dataframe(df[final_cols], hide_index=True, use_container_width=True)
