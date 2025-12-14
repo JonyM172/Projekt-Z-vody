@@ -1,37 +1,100 @@
 id_zaznamu,id_zavodnika,datum,trat,cas
-JIZDA_001,jirvas,2025-09-20,okruh 4 testovací trail,"01:40,2"
-JIZDA_002,tommrk,2025-09-20,okruh 4 testovací trail,"01:26,0"
-JIZDA_003,tomland,2025-09-20,okruh 4 testovací trail,"01:32,8"
-JIZDA_004,jonvac,2025-09-20,okruh 4 testovací trail,"01:34,9"
-JIZDA_005,esttom,2025-09-20,okruh 4 testovací trail,"01:37,9"
-JIZDA_006,davkra,2025-09-20,okruh 4 testovací trail,"01:44,4"
-JIZDA_007,samcub,2025-09-20,okruh 4 testovací trail,"01:45,2"
-JIZDA_008,jpnbou,2025-09-20,okruh 4 testovací trail,"01:45,6"
-JIZDA_009,adamul,2025-09-20,okruh 4 testovací trail,"01:47,0"
-JIZDA_010,olihab,2025-09-20,okruh 4 testovací trail,"01:50,3"
-JIZDA_011,felnyk,2025-09-20,okruh 4 testovací trail,"01:51,8"
-JIZDA_012,vilmur,2025-09-20,okruh 4 testovací trail,"01:56,2"
-JIZDA_013,vitjnu,2025-09-20,okruh 4 testovací trail,"01:59,0"
-JIZDA_014,lukbre,2025-09-20,okruh 4 testovací trail,"02:03,8"
-JIZDA_015,jakhan,2025-09-20,okruh 4 testovací trail,"02:20,6"
-JIZDA_016,davdyr,,okruh 4 testovací trail,
-JIZDA_017,bonmar,,okruh 4 testovací trail,
-JIZDA_018,antvlc,,okruh 4 testovací trail,
-JIZDA_019,antnov,2025-09-10,okruh 4 testovací trail,"01:40,0"
-JIZDA_020,niknov,2025-09-10,okruh 4 testovací trail,"02:10,0"
-JIZDA_021,tobcec,2025-09-10,okruh 4 testovací trail,"01:45,9"
-JIZDA_022,ondhlav,2025-09-10,okruh 4 testovací trail,"02:06,1"
-JIZDA_023,adacer,2025-09-10,okruh 4 testovací trail,"02:52,5"
-JIZDA_024,hugvei,2025-09-10,okruh 4 testovací trail,"03:03,1"
-JIZDA_ERR2,tommrk,2025-09-20,okruh 4 testovací trail,
-JIZDA_ERR3,jirvas,2025-09-20,neexistujici_trat_překlep,"02:00,0"
 JIZDA_NEW1,test_elite1,2025-09-20,okruh 2 ovál,"00:55,5"
 JIZDA_NEW2,test_elite2,2025-09-20,okruh 2 ovál,"00:56,0"
-513f7c71,jirvas,2025-12-14,okruh 1 kolecko,"0:50,5"
-81986616,jirvas,2025-12-14,okruh 4 testovací trail,"1:42,5"
-51be5a60,jirvas,2025-12-14,okruh 4 testovací trail,"1:45,2"
-accda37c,jirvas,2025-12-14,okruh 4 testovací trail,"1:45,9"
-93a81556,antnov,2025-12-14,okruh 4 testovací trail,"1:38,9"
-3804d711,jpnbou,2025-12-14,okruh 1 kolecko,"0:50,0"
-c90f2f9e,lukbre,2025-12-14,okruh 1 kolecko,0:45
-49d4970f,jakhan,2025-12-14,okruh 1 kolecko,0:35
+JIZDA_001,novjan,2025-09-01,okruh 1 kolecko,00:45.2
+JIZDA_002,novjan,2025-09-02,okruh 2 ovál,01:12.5
+JIZDA_003,novjan,2025-09-03,okruh 4 testovací trail,02:05.8
+JIZDA_004,novjan,2025-09-10,okruh 1 kolecko,00:44.5
+JIZDA_005,novjan,2025-09-15,okruh 1 kolecko,00:43.9
+JIZDA_006,svopet,2025-09-01,okruh 1 kolecko,00:48.1
+JIZDA_007,svopet,2025-09-04,okruh 2 ovál,01:15.0
+JIZDA_008,svopet,2025-09-15,okruh 1 kolecko,00:47.5
+JIZDA_009,cerluc,2025-09-02,okruh 1 kolecko,00:44.9
+JIZDA_010,cerluc,2025-09-05,okruh 4 testovací trail,02:10.2
+JIZDA_011,hajlen,2025-09-26,okruh 4 testovací trail,02:10.8
+JIZDA_012,hajlen,2025-09-13,okruh 2 ovál,01:26.0
+JIZDA_013,novvoj,2025-09-18,okruh 3 pumptrack,00:45.9
+JIZDA_014,novvoj,2025-09-09,okruh 3 pumptrack,00:32.9
+JIZDA_015,novvoj,2025-09-15,okruh 4 testovací trail,02:09.3
+JIZDA_016,simade,2025-09-11,okruh 3 pumptrack,00:23.1
+JIZDA_017,simade,2025-09-14,okruh 3 pumptrack,00:38.9
+JIZDA_018,simade,2025-10-01,okruh 1 kolecko,00:44.0
+JIZDA_019,jelluk,2025-09-08,okruh 4 testovací trail,02:01.3
+JIZDA_020,jelluk,2025-09-07,okruh 2 ovál,01:01.9
+JIZDA_021,jelluk,2025-09-20,okruh 1 kolecko,00:44.8
+JIZDA_022,dvoada,2025-09-01,okruh 1 kolecko,00:55.3
+JIZDA_023,dvoada,2025-09-02,okruh 2 ovál,01:30.4
+JIZDA_024,kucmar,2025-09-03,okruh 1 kolecko,00:52.1
+JIZDA_025,kucmar,2025-09-04,okruh 4 testovací trail,02:25.6
+JIZDA_026,vesjak,2025-09-01,okruh 2 ovál,01:28.7
+JIZDA_027,poskat,2025-09-01,okruh 2 ovál,01:35.2
+JIZDA_028,benhan,2025-09-29,okruh 4 testovací trail,02:14.0
+JIZDA_029,benhan,2025-09-01,okruh 1 kolecko,00:36.7
+JIZDA_030,klemar,2025-09-21,okruh 4 testovací trail,02:05.7
+JIZDA_031,klemar,2025-09-11,okruh 2 ovál,01:10.2
+JIZDA_032,horjak,2025-09-23,okruh 2 ovál,01:24.6
+JIZDA_033,horjak,2025-09-04,okruh 1 kolecko,00:58.0
+JIZDA_034,horjak,2025-09-12,okruh 3 pumptrack,00:35.2
+JIZDA_035,navade,2025-09-30,okruh 4 testovací trail,02:01.0
+JIZDA_036,navade,2025-09-26,okruh 2 ovál,01:20.5
+JIZDA_037,navade,2025-09-04,okruh 1 kolecko,00:33.2
+JIZDA_038,dolhan,2025-09-14,okruh 3 pumptrack,00:37.2
+JIZDA_039,dolhan,2025-09-08,okruh 2 ovál,01:17.6
+JIZDA_040,dolhan,2025-09-08,okruh 1 kolecko,00:43.2
+JIZDA_041,fiaada,2025-09-18,okruh 4 testovací trail,01:54.2
+JIZDA_042,fiaada,2025-09-04,okruh 1 kolecko,00:58.3
+JIZDA_043,fiaada,2025-09-15,okruh 2 ovál,01:13.2
+JIZDA_044,fiaada,2025-09-07,okruh 3 pumptrack,00:24.9
+JIZDA_045,horluk,2025-09-10,okruh 4 testovací trail,02:15.4
+JIZDA_046,horluk,2025-09-25,okruh 1 kolecko,00:38.6
+JIZDA_047,horluk,2025-09-03,okruh 2 ovál,01:13.1
+JIZDA_048,blajan,2025-09-04,okruh 1 kolecko,00:30.7
+JIZDA_049,blajan,2025-09-14,okruh 4 testovací trail,02:02.0
+JIZDA_050,blajan,2025-09-26,okruh 2 ovál,01:21.6
+JIZDA_051,blajan,2025-09-16,okruh 3 pumptrack,00:41.1
+JIZDA_052,kledan,2025-09-19,okruh 3 pumptrack,00:35.9
+JIZDA_053,kledan,2025-09-26,okruh 1 kolecko,00:47.0
+JIZDA_054,kledan,2025-09-30,okruh 4 testovací trail,01:57.0
+JIZDA_055,vlcada,2025-09-20,okruh 4 testovací trail,02:17.4
+JIZDA_056,vlcada,2025-09-07,okruh 1 kolecko,00:45.0
+JIZDA_057,hormat,2025-09-16,okruh 4 testovací trail,02:04.6
+JIZDA_058,hormat,2025-09-01,okruh 2 ovál,01:18.5
+JIZDA_059,dvoluk,2025-09-30,okruh 4 testovací trail,01:57.0
+JIZDA_060,dvoluk,2025-09-11,okruh 3 pumptrack,00:34.7
+JIZDA_061,kopeva,2025-09-07,okruh 4 testovací trail,01:54.3
+JIZDA_062,kopeva,2025-09-08,okruh 3 pumptrack,00:27.8
+JIZDA_063,kopeva,2025-09-14,okruh 2 ovál,01:02.0
+JIZDA_064,vespet,2025-09-05,okruh 4 testovací trail,01:53.0
+JIZDA_065,vespet,2025-09-04,okruh 1 kolecko,00:51.2
+JIZDA_066,nemmar,2025-09-19,okruh 1 kolecko,00:53.6
+JIZDA_067,nemmar,2025-09-08,okruh 2 ovál,01:20.7
+JIZDA_068,horfil,2025-09-05,okruh 4 testovací trail,01:55.4
+JIZDA_069,horfil,2025-09-06,okruh 1 kolecko,00:40.2
+JIZDA_070,fiaver,2025-09-22,okruh 1 kolecko,00:44.5
+JIZDA_071,fiaver,2025-09-06,okruh 4 testovací trail,02:10.2
+JIZDA_072,fiaver,2025-09-11,okruh 4 testovací trail,01:53.0
+JIZDA_073,svoluc,2025-09-09,okruh 1 kolecko,00:59.9
+JIZDA_074,svoluc,2025-10-01,okruh 4 testovací trail,01:51.6
+JIZDA_075,svoluc,2025-09-11,okruh 4 testovací trail,02:00.8
+JIZDA_076,naveva,2025-09-03,okruh 4 testovací trail,01:54.0
+JIZDA_077,naveva,2025-09-13,okruh 3 pumptrack,00:47.8
+JIZDA_078,naveva,2025-09-24,okruh 1 kolecko,00:30.6
+JIZDA_079,naveva,2025-09-02,okruh 2 ovál,01:29.7
+JIZDA_080,promar,2025-09-08,okruh 1 kolecko,00:35.6
+JIZDA_081,promar,2025-09-20,okruh 1 kolecko,00:45.4
+JIZDA_082,promar,2025-09-24,okruh 2 ovál,01:10.4
+JIZDA_083,marluk,2025-09-16,okruh 2 ovál,01:29.2
+JIZDA_084,marluk,2025-09-10,okruh 3 pumptrack,00:34.5
+JIZDA_085,marluk,2025-09-11,okruh 2 ovál,01:11.8
+JIZDA_086,doldan,2025-09-15,okruh 2 ovál,01:26.3
+JIZDA_087,doldan,2025-09-23,okruh 3 pumptrack,00:32.7
+JIZDA_088,svodan,2025-09-12,okruh 2 ovál,01:17.2
+JIZDA_089,svodan,2025-09-23,okruh 1 kolecko,00:46.7
+JIZDA_090,svodan,2025-09-15,okruh 2 ovál,01:19.0
+fa871f3f,doldan,2025-12-14,okruh 4 testovací trail,"1:00,0"
+fa871f3f,fiaver,2025-12-14,okruh 4 testovací trail,"1:00,0"
+fa871f3f,test_elite2,2025-12-14,okruh 4 testovací trail,"1:00,0"
+094e5198,test_elite1,2025-12-14,okruh 4 testovací trail,"0:59,7"
+02b5b119,marluk,2025-12-14,okruh 4 testovací trail,"1:50,5"
+44ff6b4f,promar,2025-12-14,okruh 4 testovací trail,"2:00,0"
+f4daf6aa,svoluc,2025-12-14,okruh 4 testovací trail,"2:05,3"
