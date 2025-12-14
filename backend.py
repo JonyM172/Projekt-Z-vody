@@ -1,16 +1,8 @@
-"""
-Soubor: backend.py (MINIMÁLNÍ VERZE)
-
-Tento soubor obsahuje POUZE definice tříd, aby 
-frontend.py prošel importem.
-
-Váš úkol je implementovat VŠECHNY metody (__init__, ...)
-a atributy tak, aby frontend.py přestal padat na chyby.
-"""
-
 # --- IMPORTY (potřebné pro práci se soubory a CSV) ---
+import shutil
 import os
 import pandas as pd
+import streamlit as st
 
 # --- NÁZEV SOUBORU SE ZÁVODNÍKY ---
 ZAVODNICI_CSV = "zavodnici.csv"
@@ -89,6 +81,64 @@ class Zavod:
         self._stav = "Platný"           # Výchozí stav závodu
         # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
         
+def zkontroluj_soubory():
+    """
+    Zkontroluje existenci všech očekávaných CSV souborů a vypíše varování, pokud některý chybí.
+    Program pokračuje dál i při chybějících souborech.
+    """
+    soubory = {
+        ZAVODNICI_CSV: "Závodníci",
+        SKUPINY_CSV: "Skupiny",
+        ZAVODY_CSV: "Závody",
+        JIZDY_CSV: "Jízdy",
+        TRATI_CSV: "Tratě"
+    }
+
+    for cesta, popis in soubory.items():
+        if not os.path.exists(cesta):
+            print(f"WARN: Soubor '{cesta}' ({popis}) nenalezen.")
+
+# Zavolání kontroly souborů při spuštění
+zkontroluj_soubory()
+
+# --- PŘIDAT NA KONEC SOUBORU backend.py ---
+import streamlit as st
+
+def inicializuj_aplikaci():
+    """
+    Centrální bod pro načtení dat.
+    Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
+    Pokud data existují, nedělá nic.
+    """
+    # Kontrolujeme klíčový prvek, např. 'databaze_jizd'
+    if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
+        
+        # 1. Inicializace prázdných kontejnerů
+        # Používáme lokální proměnné, které pak uložíme do state
+        db_zavodnici = {}
+        db_skupiny = {}
+        db_trate = {}
+        
+        # 2. Načtení dat (využíváme existující funkce backendu)
+        # Poznámka: Funkce nacti_a_sluc... modifikují slovník in-place
+        nacti_a_sluc_zavodniky(db_zavodnici)
+        nacti_a_sluc_skupiny(db_skupiny, db_zavodnici)
+        nacti_a_sluc_trate(db_trate)
+        
+        # Načtení jízd a závodů (vrací seznamy)
+        db_jizdy, db_zavody = nacti_zaznamy(db_zavodnici)
+
+        # 3. Uložení do Streamlit Session State
+        st.session_state['databaze_zavodniku'] = db_zavodnici
+        st.session_state['databaze_skupin'] = db_skupiny
+        st.session_state['databaze_trati'] = db_trate
+        st.session_state['databaze_jizd'] = db_jizdy
+        st.session_state['databaze_zavodu'] = db_zavody
+        
+        # (Volitelné) Flag, že inicializace proběhla
+        st.session_state['data_nactena'] = True
+        
+
 # PRACE S DATABAZÍ 
 
 def uloz_zavodniky(databaze_zavodniku, path: str = None):
@@ -112,26 +162,57 @@ def uloz_zavodniky(databaze_zavodniku, path: str = None):
     else:
         open(path, 'w').close()
 
-def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None):
-    # Zde 'path' může být cesta k externímu exportu (např. "C:/Downloads/export.csv")
-    path = path or ZAVODNICI_CSV
-    
+def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None, export_path: str = None):
+    """
+    Načte závodníky z hlavního souboru a exportovaného souboru, sloučí je a uloží zpět.
+    """
+    path = path or ZAVODNICI_CSV  # Hlavní soubor
+    export_path = export_path or "export_zavodnici.csv"  # Exportovaný soubor
+
+    # 1. Načtení existujících závodníků z hlavního souboru
     if os.path.exists(path):
         try:
             df = pd.read_csv(path, dtype=str).fillna("")
             for _, r in df.iterrows():
                 idz = r["id_zavodnika"]
                 if idz not in databaze_zavodniku:
-                    databaze_zavodniku[idz] = Zavodnik(r["jmeno"], r["prijmeni"], idz, r["rok_nar"], r["skupina"])
-                else:
-                    z = databaze_zavodniku[idz]
-                    z.jmeno, z.prijmeni, z.rok_nar, z.skupina = r["jmeno"], r["prijmeni"], r["rok_nar"], r["skupina"]
+                    databaze_zavodniku[idz] = Zavodnik(
+                        jmeno=r["jmeno"],
+                        prijmeni=r["prijmeni"],
+                        id_osoby=idz,
+                        rok_nar=r["rok_nar"],
+                        skupina=r["skupina"]
+                    )
         except Exception as e:
-            print(f"WARN: {e}")
+            print(f"WARN: Chyba při načítání hlavního souboru: {e}")
 
-    # --- OKAMŽITÉ ULOŽENÍ ---
+    # 2. Načtení nových závodníků z exportovaného souboru
+    if os.path.exists(export_path):
+        try:
+            df = pd.read_csv(export_path, dtype=str).fillna("")
+            for _, r in df.iterrows():
+                idz = r["id_zavodnika"]
+                if idz not in databaze_zavodniku:
+                    # Přidání nového závodníka
+                    databaze_zavodniku[idz] = Zavodnik(
+                        jmeno=r["jmeno"],
+                        prijmeni=r["prijmeni"],
+                        id_osoby=idz,
+                        rok_nar=r["rok_nar"],
+                        skupina=r["skupina"]
+                    )
+                else:
+                    # Aktualizace existujícího závodníka
+                    z = databaze_zavodniku[idz]
+                    z.jmeno = r["jmeno"]
+                    z.prijmeni = r["prijmeni"]
+                    z.rok_nar = r["rok_nar"]
+                    z.skupina = r["skupina"]
+        except Exception as e:
+            print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
+
+    # 3. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_zavodniky(databaze_zavodniku)
-
 
     return databaze_zavodniku        
 
@@ -153,10 +234,14 @@ def uloz_skupiny(databaze_skupin, path: str = None):
         open(path, 'w').close()
 
 # --- NAČÍTACÍ FUNKCE (S AUTOMATICKÝM ULOŽENÍM) ---
-def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None):
-    cesta_k_nacteni = path or SKUPINY_CSV
-    
-    # 1. Načtení existujících skupin
+def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None, export_path: str = None):
+    """
+    Načte skupiny z hlavního souboru a exportovaného souboru, sloučí je a uloží zpět.
+    """
+    cesta_k_nacteni = path or SKUPINY_CSV  # Hlavní soubor
+    export_path = export_path or "export_skupiny.csv"  # Exportovaný soubor
+
+    # 1. Načtení existujících skupin z hlavního souboru
     if os.path.exists(cesta_k_nacteni):
         try:
             df = pd.read_csv(cesta_k_nacteni, dtype=str).fillna("")
@@ -164,9 +249,22 @@ def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None):
                 js = r["jmeno_skupiny"]
                 if js not in databaze_skupin:
                     databaze_skupin[js] = Skupina(jmeno_skupiny=js)
-        except Exception: pass
+        except Exception as e:
+            print(f"WARN: Chyba při načítání hlavního souboru: {e}")
 
-    # 2. Dopočítání členů a chybějících skupin ze závodníků
+    # 2. Načtení nových skupin z exportovaného souboru
+    if os.path.exists(export_path):
+        try:
+            df = pd.read_csv(export_path, dtype=str).fillna("")
+            for _, r in df.iterrows():
+                js = r["jmeno_skupiny"]
+                if js not in databaze_skupin:
+                    # Přidání nové skupiny
+                    databaze_skupin[js] = Skupina(jmeno_skupiny=js)
+        except Exception as e:
+            print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
+
+    # 3. Dopočítání členů a chybějících skupin ze závodníků
     # Reset členů, aby se nekupili
     for g in databaze_skupin.values():
         g.clenove = []
@@ -180,10 +278,9 @@ def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None):
             # Přidáme člena
             databaze_skupin[z.skupina].clenove.append(z)
 
-    # --- OKAMŽITÉ ULOŽENÍ ---
+    # 4. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_skupiny(databaze_skupin)
 
-    
     return databaze_skupin
 
 # --- DEFINICE UKLÁDACÍ FUNKCE ---
@@ -367,6 +464,7 @@ class PraceSDatabazi:
             self.uloz_data_do_csv()
             
         return ulozono_pocet, chyby
+    
 
     # --- POMOCNÉ METODY PRO CSV ---
     def _sestav_rows_jizdy(self, zdrojovy_seznam):
@@ -380,7 +478,6 @@ class PraceSDatabazi:
                 "cas": j.cas
             })
         return rows
-
 
     def _sestav_rows_zavody(self, zdrojovy_seznam):
         rows = []
@@ -416,6 +513,55 @@ class PraceSDatabazi:
             header_needed = not os.path.exists(ZAVODY_CSV)
             df.to_csv(ZAVODY_CSV, mode="a", header=header_needed, index=False)
             self._nove_zavody = [] 
+        return True
+    
+    def prepis_soubor_jizd(self):
+        """
+        Bezpečně přepíše CSV soubor.
+        1. Vytvoří zálohu (.bak) původního souboru.
+        2. Zkontroluje, zda nechceme omylem smazat všechna data.
+        """
+        
+        # --- POJISTKA 1: VYTVOŘENÍ ZÁLOHY ---
+        if os.path.exists(JIZDY_CSV):
+            try:
+                # Vytvoří kopii: databaze_jizd.csv -> databaze_jizd.csv.bak
+                shutil.copyfile(JIZDY_CSV, JIZDY_CSV + ".bak")
+            except Exception as e:
+                print(f"WARN: Nepodařilo se vytvořit zálohu: {e}")
+
+        # Příprava dat
+        rows = []
+        for j in self._databaze_jizd:
+            rows.append({
+                "id_zaznamu": j.id_zaznamu,
+                "id_zavodnika": j.zavodnik_obj.id_osoby,
+                "datum": j.datum,
+                "trat": j.trat.jmeno_trati,
+                "cas": j.cas
+            })
+        
+        # --- POJISTKA 2: OCHRANA PROTI OMYLU (PRÁZDNÝ SEZNAM) ---
+        # Pokud je seznam prázdný, je to podezřelé. 
+        # Opravdu chceme smazat celou databázi?
+        if not rows:
+            # Zkontrolujeme, jestli původní soubor nebyl velký
+            # Pokud soubor existoval a měl data, a my teď chceme zapsat 0 řádků -> STOP.
+            puvodni_velikost = os.path.getsize(JIZDY_CSV) if os.path.exists(JIZDY_CSV) else 0
+            
+            if puvodni_velikost > 100: # 100 bytů je cca hlavička + 1 řádek
+                print("CRITICAL ERROR: Pokus o smazání celé databáze jízd zablokován!")
+                return False # Zápis se neprovede, data jsou zachráněna
+
+            # Pokud byl soubor malý nebo neexistoval, asi opravdu mažeme vše (nebo začínáme)
+            with open(JIZDY_CSV, 'w') as f:
+                f.write("id_zaznamu,id_zavodnika,datum,trat,cas\n")
+            return True
+
+        # --- ZÁPIS (pokud máme data) ---
+        df = pd.DataFrame(rows)
+        df.to_csv(JIZDY_CSV, index=False, mode='w')
+        
         return True
 
     # --- DEDUPLIKACE ZÁZNAMŮ ---
@@ -672,3 +818,41 @@ class Vyhledavani:
 
         # Použití nové pomocné metody pro řazení (DRY princip)
         return self._serad_vystup(zavody, jizdy)
+
+    def najdi_nejlepsi_vykony(jizdy_df):
+        """
+        Najde nejlepší výkon každého závodníka na dané trati.
+
+        Args:
+            jizdy_df (pd.DataFrame): DataFrame obsahující sloupce 'id_zavodnika', 'trat', a 'cas'.
+
+        Returns:
+            pd.DataFrame: DataFrame obsahující pouze nejlepší výkony.
+        """
+        if not all(col in jizdy_df.columns for col in ['id_zavodnika', 'trat', 'cas']):
+            raise ValueError("DataFrame musí obsahovat sloupce 'id_zavodnika', 'trat' a 'cas'.")
+
+        # Převod času na sekundy pro porovnání
+        def time_to_seconds(time_str):
+            try:
+                parts = time_str.split(":")
+                minutes = int(parts[0])
+                seconds = float(parts[1].replace(",", "."))
+                return minutes * 60 + seconds
+            except (ValueError, AttributeError):
+                return float('inf')
+
+        # Přidání pomocného sloupce pro porovnání
+        jizdy_df = jizdy_df.copy()
+        jizdy_df['cas_v_sekundach'] = jizdy_df['cas'].apply(time_to_seconds)
+
+        # Výběr nejlepšího výkonu pro každého závodníka na každé trati
+        nejlepsi_vykony = jizdy_df.loc[
+            jizdy_df.groupby(['id_zavodnika', 'trat'])['cas_v_sekundach'].idxmin()
+        ]
+
+        # Odstranění pomocného sloupce
+        nejlepsi_vykony = nejlepsi_vykony.drop(columns=['cas_v_sekundach'])
+
+        return nejlepsi_vykony
+
