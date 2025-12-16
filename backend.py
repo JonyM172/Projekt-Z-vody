@@ -82,10 +82,7 @@ class Zavod:
         # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
         
 def zkontroluj_soubory():
-    """
-    Zkontroluje existenci všech očekávaných CSV souborů a vypíše varování, pokud některý chybí.
-    Program pokračuje dál i při chybějících souborech.
-    """
+
     soubory = {
         ZAVODNICI_CSV: "Závodníci",
         SKUPINY_CSV: "Skupiny",
@@ -101,12 +98,10 @@ def zkontroluj_soubory():
 # Zavolání kontroly souborů při spuštění
 zkontroluj_soubory()
 
-# --- PŘIDAT NA KONEC SOUBORU backend.py ---
-import streamlit as st
+
 
 def inicializuj_aplikaci():
     """
-    Centrální bod pro načtení dat.
     Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
     Pokud data existují, nedělá nic.
     """
@@ -114,13 +109,11 @@ def inicializuj_aplikaci():
     if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
         
         # 1. Inicializace prázdných kontejnerů
-        # Používáme lokální proměnné, které pak uložíme do state
         db_zavodnici = {}
         db_skupiny = {}
         db_trate = {}
         
-        # 2. Načtení dat (využíváme existující funkce backendu)
-        # Poznámka: Funkce nacti_a_sluc... modifikují slovník in-place
+        # 2. Načtení dat 
         nacti_a_sluc_zavodniky(db_zavodnici)
         nacti_a_sluc_skupiny(db_skupiny, db_zavodnici)
         nacti_a_sluc_trate(db_trate)
@@ -135,7 +128,7 @@ def inicializuj_aplikaci():
         st.session_state['databaze_jizd'] = db_jizdy
         st.session_state['databaze_zavodu'] = db_zavody
         
-        # (Volitelné) Flag, že inicializace proběhla
+
         st.session_state['data_nactena'] = True
         
 
@@ -210,7 +203,7 @@ def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None, export_path: st
                     z.skupina = r["skupina"]
         except Exception as e:
             print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
-
+#závodníci se naonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
     # 3. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_zavodniky(databaze_zavodniku)
 
@@ -222,7 +215,7 @@ def uloz_skupiny(databaze_skupin, path: str = None):
     
     rows = []
     for s in databaze_skupin.values():
-        # Ukládáme jen název, členové se generují dynamicky
+        # Ukládáme jen název, členové se generují ze souboru zavodnici
         rows.append({
             "jmeno_skupiny": s.jmeno_skupiny
         })
@@ -233,7 +226,7 @@ def uloz_skupiny(databaze_skupin, path: str = None):
     else:
         open(path, 'w').close()
 
-# --- NAČÍTACÍ FUNKCE (S AUTOMATICKÝM ULOŽENÍM) ---
+# načtení + uložení
 def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None, export_path: str = None):
     """
     Načte skupiny z hlavního souboru a exportovaného souboru, sloučí je a uloží zpět.
@@ -283,7 +276,7 @@ def nacti_a_sluc_skupiny(databaze_skupin, databaze_zavodniku, path: str = None, 
 
     return databaze_skupin
 
-# --- DEFINICE UKLÁDACÍ FUNKCE ---
+
 def uloz_trate(databaze_trati, path: str = None):
     path = path or TRATI_CSV
     
@@ -299,7 +292,7 @@ def uloz_trate(databaze_trati, path: str = None):
     else:
         open(path, 'w').close()
 
-# --- NAČÍTACÍ FUNKCE (S AUTOMATICKÝM ULOŽENÍM) ---
+
 def nacti_a_sluc_trate(databaze_trati, path: str = None):
     # Path může být externí soubor pro import
     cesta_k_nacteni = path or TRATI_CSV
@@ -314,8 +307,8 @@ def nacti_a_sluc_trate(databaze_trati, path: str = None):
         except Exception as e:
             print(f"WARN: {e}")
 
-    # --- OKAMŽITÉ ULOŽENÍ ---
-    # Uložíme aktuální stav do hlavního souboru TRATI_CSV
+ 
+    # Uložíme do TRATI_CSV
     uloz_trate(databaze_trati)
     # ------------------------
 
@@ -330,7 +323,7 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
     path_jizdy = path_jizdy or JIZDY_CSV
     path_zavody = path_zavody or ZAVODY_CSV
 
-    # --- 2. ČÁST: Načtení jízd ---
+    #  Načtení jízd 
     if os.path.exists(path_jizdy):
         try:
             df_j = pd.read_csv(path_jizdy, dtype=str).fillna("")
@@ -357,7 +350,7 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
                 pr = r.get("prijmeni", "?")
                 print(f"WARN: Závodník {jm} {pr} (ID: {idz}) nenalezen. Závod (ID záznamu: {r.get('id_zaznamu')}) přeskočen.")
 
-    # --- 3. ČÁST: Načtení závodů ---
+    #  Načtení závodů ---
     if os.path.exists(path_zavody):
         try:
             df_z = pd.read_csv(path_zavody, dtype=str).fillna("")
