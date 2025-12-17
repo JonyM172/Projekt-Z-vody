@@ -102,11 +102,7 @@ def inicializuj_aplikaci():
     Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
     Pokud data existují, nedělá nic.
     """
-<<<<<<< HEAD
-    # Kontrolujeme klíčový prvek, např. 'databaze_jizd'
-=======
     # Kontrolujeme existenci 'databaze_jizd'
->>>>>>> FINAL
     if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
         
         # 1. Inicializace prázdných kontejnerů
@@ -129,10 +125,6 @@ def inicializuj_aplikaci():
         st.session_state['databaze_jizd'] = db_jizdy
         st.session_state['databaze_zavodu'] = db_zavody
         
-<<<<<<< HEAD
-
-=======
->>>>>>> FINAL
         st.session_state['data_nactena'] = True
         
 
@@ -207,11 +199,7 @@ def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None, export_path: st
                     z.skupina = r["skupina"]
         except Exception as e:
             print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
-<<<<<<< HEAD
-#závodníci se naonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
-=======
 #závodníci se nakonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
->>>>>>> FINAL
     # 3. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_zavodniky(databaze_zavodniku)
 
