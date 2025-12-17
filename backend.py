@@ -79,7 +79,6 @@ class Zavod:
         self.datum = datum
         self.id_zaznamu = id_zaznamu
         self._stav = "Platný"           # Výchozí stav závodu
-        # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
         
 def zkontroluj_soubory():
 
@@ -98,14 +97,12 @@ def zkontroluj_soubory():
 # Zavolání kontroly souborů při spuštění
 zkontroluj_soubory()
 
-
-
 def inicializuj_aplikaci():
     """
     Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
     Pokud data existují, nedělá nic.
     """
-    # Kontrolujeme klíčový prvek, např. 'databaze_jizd'
+    # Kontrolujeme existenci 'databaze_jizd'
     if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
         
         # 1. Inicializace prázdných kontejnerů
@@ -128,7 +125,6 @@ def inicializuj_aplikaci():
         st.session_state['databaze_jizd'] = db_jizdy
         st.session_state['databaze_zavodu'] = db_zavody
         
-
         st.session_state['data_nactena'] = True
         
 
@@ -203,7 +199,7 @@ def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None, export_path: st
                     z.skupina = r["skupina"]
         except Exception as e:
             print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
-#závodníci se naonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
+#závodníci se nakonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
     # 3. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_zavodniky(databaze_zavodniku)
 
@@ -381,7 +377,6 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
 
     # 4. Vrátíme nově vytvořené a naplněné seznamy
     return databaze_jizd, databaze_zavodu
-# jak je to s class prace s databazi? potrebuji ji a k cemu mi je?
 
 class PraceSDatabazi:
     def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, 
