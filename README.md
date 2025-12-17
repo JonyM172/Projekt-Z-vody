@@ -11,13 +11,14 @@ Obě umožňují výběr trati a filtrování nejlepších výsledků pro každ�
 Záložka Vyhledávání umožňuje najít konkrétní záznam nebo závodníka pro osobní statistiky
 
 
-## Jazyk a yyužívané knihovny:
+## Jazyk a využívané knihovny:
 Python 3.13.7  
 streamlit - tvorba frontend  
 pandas - práce s csv soubory  
 os - načítání souborů přes path  
 shutil - vytváření zálohy při mazání záznamů  
 
+  finální verze je na Branch FINAL
 ## spuštění 
 spuštění virtuálního prostředí  
 (v průzkumníku souborůsouborů otevřete složku projekt Zavody do cesty zapište cmd pro otevření comand window   
