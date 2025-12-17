@@ -79,7 +79,6 @@ class Zavod:
         self.datum = datum
         self.id_zaznamu = id_zaznamu
         self._stav = "Platný"           # Výchozí stav závodu
-        # self._prirazeny_urednik = None  # Výchozí nepřiřazeno
         
 def zkontroluj_soubory():
 
@@ -98,14 +97,21 @@ def zkontroluj_soubory():
 # Zavolání kontroly souborů při spuštění
 zkontroluj_soubory()
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> FINAL
 def inicializuj_aplikaci():
     """
     Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
     Pokud data existují, nedělá nic.
     """
+<<<<<<< HEAD
     # Kontrolujeme klíčový prvek, např. 'databaze_jizd'
+=======
+    # Kontrolujeme existenci 'databaze_jizd'
+>>>>>>> FINAL
     if 'databaze_jizd' not in st.session_state or 'databaze_zavodniku' not in st.session_state:
         
         # 1. Inicializace prázdných kontejnerů
@@ -128,7 +134,10 @@ def inicializuj_aplikaci():
         st.session_state['databaze_jizd'] = db_jizdy
         st.session_state['databaze_zavodu'] = db_zavody
         
+<<<<<<< HEAD
 
+=======
+>>>>>>> FINAL
         st.session_state['data_nactena'] = True
         
 
@@ -203,7 +212,11 @@ def nacti_a_sluc_zavodniky(databaze_zavodniku, path: str = None, export_path: st
                     z.skupina = r["skupina"]
         except Exception as e:
             print(f"WARN: Chyba při načítání exportovaného souboru: {e}")
+<<<<<<< HEAD
 #závodníci se naonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
+=======
+#závodníci se nakonec needitují v aplikaci kvůli souladu s klubovým informačním systémem
+>>>>>>> FINAL
     # 3. Uložení aktualizované databáze zpět do hlavního souboru
     uloz_zavodniky(databaze_zavodniku)
 
@@ -381,7 +394,6 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
 
     # 4. Vrátíme nově vytvořené a naplněné seznamy
     return databaze_jizd, databaze_zavodu
-# jak je to s class prace s databazi? potrebuji ji a k cemu mi je?
 
 class PraceSDatabazi:
     def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, 
@@ -612,9 +624,8 @@ class Vyhledavani:
         self.databaze_trati = databaze_trati
         self.databaze_skupin = databaze_skupin
 
-    # ========================================================
-    # ČÁST A: Metody pro Dropdown menu (Data pro výběry)
-    # ========================================================
+    
+    # Metody pro Dropdown menu (Data pro výběry)
 
     def vrat_seznam_trati(self):
         """Vrátí abecedně seřazený seznam názvů tratí."""
@@ -647,9 +658,8 @@ class Vyhledavani:
             seznam.append(polozka)
         return sorted(seznam)
 
-    # ========================================================
-    # ČÁST B: Pomocné metody (Řazení + Formátování pro Frontend) - NOVÉ
-    # ========================================================
+ 
+    #  Pomocné metody (Řazení + Formátování pro Frontend) 
 
     def _serad_vystup(self, zavody, jizdy):
         """
@@ -685,25 +695,7 @@ class Vyhledavani:
         vystup.sort(key=lambda x: x[0], reverse=True)
         return vystup
 
-    # ========================================================
-    # ČÁST C: Metody pro Frontend (Wrapper) - NOVÉ
-    # Tyto metody bude volat váš frontend.py pro naplnění tabulky
-    # ========================================================
-
-    def vrat_data_pro_tabulku_filtrovana(self, **kwargs):
-        """
-        Hlavní metoda pro frontend.
-        1. Zavolá filtr (najde objekty).
-        2. Zavolá formátování (převede na text).
-        """
-        z, j = self.filtruj(**kwargs)
-        return self._formatuj_vystup_pro_tabulku(z, j)
-
-    def vrat_vsechna_data_pro_tabulku(self):
-        """Vrátí úplně všechna data (např. při startu aplikace)."""
-        # Použijeme rovnou surová data a naformátujeme je
-        return self._formatuj_vystup_pro_tabulku(self._databaze_zavodu, self._databaze_jizd)
-
+   
 
     """ 
     # --------------------------------------------------------
@@ -788,7 +780,7 @@ class Vyhledavani:
         zavody = []
         jizdy = []
 
-        # OPRAVA: Odstraněno "self.db." - data máme přímo v "self._databaze_zavodu"
+
         for z in self._databaze_zavodu:
             if id_zavodnika is not None and z.zavodnik_obj.id_osoby != id_zavodnika: continue
             if jmeno is not None and z.zavodnik_obj.jmeno != jmeno: continue
@@ -809,7 +801,7 @@ class Vyhledavani:
             if datum_do is not None and j.datum > datum_do: continue
             jizdy.append(j)
 
-        # Použití nové pomocné metody pro řazení (DRY princip)
+        # Použití nové pomocné metody pro řazení 
         return self._serad_vystup(zavody, jizdy)
 
     def najdi_nejlepsi_vykony(jizdy_df):

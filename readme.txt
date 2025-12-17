@@ -1,5 +1,6 @@
 # Projekt-Zavody
 ## Popis funkcí
+Finální verze aplikace je na branch FINAL
 Aplikace slouží k zápisu, vyhodnocení a zobrazení výsledků měření závodů a testovacích jízd ve sportovním klubu.  
 (funkcionalita závodů je zatím nedostupná, protože se nevyužívá klub má připravené jen záznamy jízd).  
 Těžištěm práce je backend a jeho implementace, frontend byl sestaven převážně pomocí Gemini a slouží k testování funkčnosti backendu.   
@@ -11,14 +12,13 @@ Obě umožňují výběr trati a filtrování nejlepších výsledků pro každ�
 Záložka Vyhledávání umožňuje najít konkrétní záznam nebo závodníka pro osobní statistiky
 
 
-## Jazyk a využívané knihovny:
+## Jazyk a yyužívané knihovny:
 Python 3.13.7  
 streamlit - tvorba frontend  
 pandas - práce s csv soubory  
 os - načítání souborů přes path  
 shutil - vytváření zálohy při mazání záznamů  
 
-  finální verze je na Branch FINAL
 ## spuštění 
 spuštění virtuálního prostředí  
 (v průzkumníku souborůsouborů otevřete složku projekt Zavody do cesty zapište cmd pro otevření comand window   
