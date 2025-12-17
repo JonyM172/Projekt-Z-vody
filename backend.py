@@ -556,55 +556,6 @@ class PraceSDatabazi:
         df.to_csv(JIZDY_CSV, index=False, mode='w')
         
         return True
-    
-    def prepis_soubor_jizd(self):
-        """
-        Bezpečně přepíše CSV soubor.
-        1. Vytvoří zálohu (.bak) původního souboru.
-        2. Zkontroluje, zda nechceme omylem smazat všechna data.
-        """
-        
-        # --- POJISTKA 1: VYTVOŘENÍ ZÁLOHY ---
-        if os.path.exists(JIZDY_CSV):
-            try:
-                # Vytvoří kopii: databaze_jizd.csv -> databaze_jizd.csv.bak
-                shutil.copyfile(JIZDY_CSV, JIZDY_CSV + ".bak")
-            except Exception as e:
-                print(f"WARN: Nepodařilo se vytvořit zálohu: {e}")
-
-        # Příprava dat
-        rows = []
-        for j in self._databaze_jizd:
-            rows.append({
-                "id_zaznamu": j.id_zaznamu,
-                "id_zavodnika": j.zavodnik_obj.id_osoby,
-                "datum": j.datum,
-                "trat": j.trat.jmeno_trati,
-                "cas": j.cas
-            })
-        
-        # --- POJISTKA 2: OCHRANA PROTI OMYLU (PRÁZDNÝ SEZNAM) ---
-        # Pokud je seznam prázdný, je to podezřelé. 
-        # Opravdu chceme smazat celou databázi?
-        if not rows:
-            # Zkontrolujeme, jestli původní soubor nebyl velký
-            # Pokud soubor existoval a měl data, a my teď chceme zapsat 0 řádků -> STOP.
-            puvodni_velikost = os.path.getsize(JIZDY_CSV) if os.path.exists(JIZDY_CSV) else 0
-            
-            if puvodni_velikost > 100: # 100 bytů je cca hlavička + 1 řádek
-                print("CRITICAL ERROR: Pokus o smazání celé databáze jízd zablokován!")
-                return False # Zápis se neprovede, data jsou zachráněna
-
-            # Pokud byl soubor malý nebo neexistoval, asi opravdu mažeme vše (nebo začínáme)
-            with open(JIZDY_CSV, 'w') as f:
-                f.write("id_zaznamu,id_zavodnika,datum,trat,cas\n")
-            return True
-
-        # --- ZÁPIS (pokud máme data) ---
-        df = pd.DataFrame(rows)
-        df.to_csv(JIZDY_CSV, index=False, mode='w')
-        
-        return True
 
     # --- DEDUPLIKACE ZÁZNAMŮ ---
     def deduplikuj_zaznamy(self):
@@ -858,58 +809,6 @@ class Vyhledavani:
             if datum_do is not None and j.datum > datum_do: continue
             jizdy.append(j)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-=======
-        # Použití nové pomocné metody pro řazení (DRY princip)
-        return self._serad_vystup(zavody, jizdy)
->>>>>>> 0d2e6b994394f09e3913e75f98ea3ab7fee9a449
-
-    def najdi_nejlepsi_vykony(jizdy_df):
-        """
-        Najde nejlepší výkon každého závodníka na dané trati.
-
-        Args:
-            jizdy_df (pd.DataFrame): DataFrame obsahující sloupce 'id_zavodnika', 'trat', a 'cas'.
-
-        Returns:
-            pd.DataFrame: DataFrame obsahující pouze nejlepší výkony.
-        """
-        if not all(col in jizdy_df.columns for col in ['id_zavodnika', 'trat', 'cas']):
-            raise ValueError("DataFrame musí obsahovat sloupce 'id_zavodnika', 'trat' a 'cas'.")
-
-        # Převod času na sekundy pro porovnání
-        def time_to_seconds(time_str):
-            try:
-                parts = time_str.split(":")
-                minutes = int(parts[0])
-                seconds = float(parts[1].replace(",", "."))
-                return minutes * 60 + seconds
-            except (ValueError, AttributeError):
-                return float('inf')
-
-        # Přidání pomocného sloupce pro porovnání
-        jizdy_df = jizdy_df.copy()
-        jizdy_df['cas_v_sekundach'] = jizdy_df['cas'].apply(time_to_seconds)
-
-        # Výběr nejlepšího výkonu pro každého závodníka na každé trati
-        nejlepsi_vykony = jizdy_df.loc[
-            jizdy_df.groupby(['id_zavodnika', 'trat'])['cas_v_sekundach'].idxmin()
-        ]
-
-        # Odstranění pomocného sloupce
-        nejlepsi_vykony = nejlepsi_vykony.drop(columns=['cas_v_sekundach'])
-
-        return nejlepsi_vykony
-
-<<<<<<< HEAD
-        return zavody, jizdy
-=======
         # Použití nové pomocné metody pro řazení (DRY princip)
         return self._serad_vystup(zavody, jizdy)
 
@@ -950,6 +849,3 @@ class Vyhledavani:
 
         return nejlepsi_vykony
 
->>>>>>> d185532 (odstranění nadbytečných souborů pro uložení do branch FINAL)
-=======
->>>>>>> 0d2e6b994394f09e3913e75f98ea3ab7fee9a449
