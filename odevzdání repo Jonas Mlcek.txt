@@ -1,0 +1,6 @@
+Pod následujícím odkazem je repozitář mé semestrální práce.
+Z osobních důvodů jsem ho nastavil jako soukromé a nasdílel na šklní maily cvičících Ing Michala Kuchaře a Ing Martina Vitouška. 
+V případě potřeby mohu přidat další opravující 
+https://github.com/JonyM172/Projekt-Z-vody.git
+Hlavním předmětem práce je soubor backend. 
+soubory frontend a jednotlivé listy aplikace jsem vytvářel nad rámec požadovaného času a jejich obsah je většinově tvořen s pomocí Gemini. 

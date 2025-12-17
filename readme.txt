@@ -1,5 +1,6 @@
 # Projekt-Zavody
 ## Popis funkcí
+Finální verze aplikace je na branch FINAL
 Aplikace slouží k zápisu, vyhodnocení a zobrazení výsledků měření závodů a testovacích jízd ve sportovním klubu.  
 (funkcionalita závodů je zatím nedostupná, protože se nevyužívá klub má připravené jen záznamy jízd).  
 Těžištěm práce je backend a jeho implementace, frontend byl sestaven převážně pomocí Gemini a slouží k testování funkčnosti backendu.   
