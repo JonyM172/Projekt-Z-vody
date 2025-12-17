@@ -384,16 +384,18 @@ def nacti_zaznamy(databaze_zavodniku, path_jizdy: str = None, path_zavody: str =
 # jak je to s class prace s databazi? potrebuji ji a k cemu mi je?
 
 class PraceSDatabazi:
-    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku):
+    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, 
+                 databaze_trati, databaze_skupin):
         
-
         self._databaze_jizd = databaze_jizd
         self._databaze_zavodu = databaze_zavodu
         self.databaze_zavodniku = databaze_zavodniku
+        self.databaze_trati = databaze_trati
+        self.databaze_skupin = databaze_skupin
 
         self._nove_jizdy = []
         self._nove_zavody = []
-    
+
     # --- INTERNÍ UKLÁDÁNÍ (JEDEN ZÁZNAM) ---
     def uloz_jizdu(self, testovaci_jizda):
         self._databaze_jizd.append(testovaci_jizda)
@@ -405,16 +407,14 @@ class PraceSDatabazi:
 
     # --- HROMADNÉ UKLÁDÁNÍ (PRO FRONTEND) ---
     def uloz_hromadne_zaznamy(self, typ_zaznamu, seznam_raw_dat, jmeno_trati, datum, id_zaznamu_spolecne):
-        
-
         objekt_trati = Trat(jmeno_trati)
         ulozono_pocet = 0
         chyby = []
         
         for polozka in seznam_raw_dat:
             idz = polozka.get("id_zavodnika")
-            cas = polozka.get("cas", "")         # Může být prázdné
-            umisteni = polozka.get("umisteni", "") # Může být prázdné (jen u závodů)
+            cas = polozka.get("cas", "")
+            umisteni = polozka.get("umisteni", "")
             
             zavodnik = self.databaze_zavodniku.get(idz)
             
@@ -422,10 +422,7 @@ class PraceSDatabazi:
                 chyby.append(f"ID {idz}: Závodník nenalezen")
                 continue
 
-# --- LOGIKA PRO JÍZDU (TRÉNINK) ---
-# U tréninku je ČAS povinný
             if typ_zaznamu == "jizda":
-
                 if cas:
                     nova_jizda = TestovaciJizda(
                         zavodnik_obj=zavodnik,
@@ -440,9 +437,7 @@ class PraceSDatabazi:
                     # Pokud není čas -> ignorujeme řádek
                     continue 
 
-            # --- LOGIKA PRO ZÁVOD ---
             elif typ_zaznamu == "zavod":
-                # U závodu stačí BUĎ čas, NEBO umístění (nebo oboje)
                 if cas or umisteni:
                     novy_zavod = Zavod(
                         zavodnik_obj=zavodnik,
@@ -493,11 +488,10 @@ class PraceSDatabazi:
             })
         return rows
 
-    # --- ZÁPIS NA DISK (APPEND) ---
+    # --- ZÁPIS NA DISK ---
     def uloz_data_do_csv(self):
-        """Uloží BUFFER (novinky) pomocí mode='a'."""
-        
-        # Jízdy
+
+        #jizdty
         if self._nove_jizdy:
             rows = self._sestav_rows_jizdy(self._nove_jizdy)
             df = pd.DataFrame(rows)
@@ -505,14 +499,62 @@ class PraceSDatabazi:
             df.to_csv(JIZDY_CSV, mode="a", header=header_needed, index=False)
             self._nove_jizdy = [] 
 
-        # Závody
+        # zavody
         if self._nove_zavody:
             rows = self._sestav_rows_zavody(self._nove_zavody)
             df = pd.DataFrame(rows)
             header_needed = not os.path.exists(ZAVODY_CSV)
             df.to_csv(ZAVODY_CSV, mode="a", header=header_needed, index=False)
             self._nove_zavody = [] 
+        return True
+    
+    def prepis_soubor_jizd(self):
+        """
+        Bezpečně přepíše CSV soubor.
+        1. Vytvoří zálohu (.bak) původního souboru.
+        2. Zkontroluje, zda nechceme omylem smazat všechna data.
+        """
+        
+        # --- POJISTKA 1: VYTVOŘENÍ ZÁLOHY ---
+        if os.path.exists(JIZDY_CSV):
+            try:
+                # Vytvoří kopii: databaze_jizd.csv -> databaze_jizd.csv.bak
+                shutil.copyfile(JIZDY_CSV, JIZDY_CSV + ".bak")
+            except Exception as e:
+                print(f"WARN: Nepodařilo se vytvořit zálohu: {e}")
 
+        # Příprava dat
+        rows = []
+        for j in self._databaze_jizd:
+            rows.append({
+                "id_zaznamu": j.id_zaznamu,
+                "id_zavodnika": j.zavodnik_obj.id_osoby,
+                "datum": j.datum,
+                "trat": j.trat.jmeno_trati,
+                "cas": j.cas
+            })
+        
+        # --- POJISTKA 2: OCHRANA PROTI OMYLU (PRÁZDNÝ SEZNAM) ---
+        # Pokud je seznam prázdný, je to podezřelé. 
+        # Opravdu chceme smazat celou databázi?
+        if not rows:
+            # Zkontrolujeme, jestli původní soubor nebyl velký
+            # Pokud soubor existoval a měl data, a my teď chceme zapsat 0 řádků -> STOP.
+            puvodni_velikost = os.path.getsize(JIZDY_CSV) if os.path.exists(JIZDY_CSV) else 0
+            
+            if puvodni_velikost > 100: # 100 bytů je cca hlavička + 1 řádek
+                print("CRITICAL ERROR: Pokus o smazání celé databáze jízd zablokován!")
+                return False # Zápis se neprovede, data jsou zachráněna
+
+            # Pokud byl soubor malý nebo neexistoval, asi opravdu mažeme vše (nebo začínáme)
+            with open(JIZDY_CSV, 'w') as f:
+                f.write("id_zaznamu,id_zavodnika,datum,trat,cas\n")
+            return True
+
+        # --- ZÁPIS (pokud máme data) ---
+        df = pd.DataFrame(rows)
+        df.to_csv(JIZDY_CSV, index=False, mode='w')
+        
         return True
     
     def prepis_soubor_jizd(self):
@@ -564,9 +606,8 @@ class PraceSDatabazi:
         
         return True
 
-    # --- DEDUPLIKACE ---
+    # --- DEDUPLIKACE ZÁZNAMŮ ---
     def deduplikuj_zaznamy(self):
-        """Vyčistí paměť a PŘEPÍŠE soubory (mode='w')."""
         def klic(zaznam):
             return (
                 zaznam.zavodnik_obj.jmeno, 
@@ -577,7 +618,7 @@ class PraceSDatabazi:
                 getattr(zaznam, "umisteni", "")
             )
 
-        # 1. Jízdy
+        # Jízdy
         videne = set()
         ciste = []
         for j in self._databaze_jizd:
@@ -588,7 +629,7 @@ class PraceSDatabazi:
         self._databaze_jizd = ciste
         self._nove_jizdy = [] 
 
-        # 2. Závody
+        # Závody
         videne = set()
         ciste = []
         for z in self._databaze_zavodu:
@@ -599,7 +640,7 @@ class PraceSDatabazi:
         self._databaze_zavodu = ciste
         self._nove_zavody = []
 
-        # 3. Zápis (REWRITE)
+        # Zápis
         if self._databaze_jizd:
             rows = self._sestav_rows_jizdy(self._databaze_jizd)
             pd.DataFrame(rows).to_csv(JIZDY_CSV, mode="w", index=False)
@@ -607,14 +648,113 @@ class PraceSDatabazi:
         if self._databaze_zavodu:
             rows = self._sestav_rows_zavody(self._databaze_zavodu)
             pd.DataFrame(rows).to_csv(ZAVODY_CSV, mode="w", index=False)
-        
         return True
     
-    
-class Vyhledavani:
-    def __init__(self, databaze):
-        self.db = databaze
 
+class Vyhledavani:
+    def __init__(self, databaze_jizd, databaze_zavodu, databaze_zavodniku, databaze_trati, databaze_skupin):
+        # 1. PŘÍMÝ PŘÍSTUP K DATŮM
+        # Zde si data uložíme přímo do instance 'Vyhledavani'
+        self._databaze_jizd = databaze_jizd
+        self._databaze_zavodu = databaze_zavodu
+        self.databaze_zavodniku = databaze_zavodniku
+        self.databaze_trati = databaze_trati
+        self.databaze_skupin = databaze_skupin
+
+    # ========================================================
+    # ČÁST A: Metody pro Dropdown menu (Data pro výběry)
+    # ========================================================
+
+    def vrat_seznam_trati(self):
+        """Vrátí abecedně seřazený seznam názvů tratí."""
+        if self.databaze_trati:
+            return sorted(list(self.databaze_trati.keys()))
+        return []
+
+    def vrat_seznam_skupin(self):
+        """Vrátí abecedně seřazený seznam názvů skupin."""
+        if self.databaze_skupin:
+            return sorted(list(self.databaze_skupin.keys()))
+        return []
+    
+    def vrat_zavodniky_ve_skupine(self, nazev_skupiny):
+        """Vrátí seznam n-tic (Jméno, Příjmení, Rok) pro danou skupinu."""
+        vybrani = []
+        for zavodnik in self.databaze_zavodniku.values():
+            if zavodnik.skupina == nazev_skupiny:
+                radek = (zavodnik.jmeno, zavodnik.prijmeni, zavodnik.rok_nar)
+                vybrani.append(radek)
+        
+        vybrani.sort(key=lambda z: z[0]) # Řazení podle jména
+        return vybrani
+
+    def get_seznam_zavodniku_formatovany(self):
+        """Vrátí seznam 'Příjmení Jméno (ID)' pro výběr konkrétní osoby."""
+        seznam = []
+        for z in self.databaze_zavodniku.values():
+            polozka = f"{z.prijmeni} {z.jmeno} ({z.id_osoby})"
+            seznam.append(polozka)
+        return sorted(seznam)
+
+    # ========================================================
+    # ČÁST B: Pomocné metody (Řazení + Formátování pro Frontend) - NOVÉ
+    # ========================================================
+
+    def _serad_vystup(self, zavody, jizdy):
+        """
+        Pomocná metoda: Sjednotí řazení na jednom místě.
+        Pokud budete chtít změnit priority řazení, změníte to jen zde.
+        """
+        zavody.sort(key=lambda z: (z.trat.jmeno_trati, z.zavodnik_obj.id_osoby, z.datum))
+        jizdy.sort(key=lambda j: (j.trat.jmeno_trati, j.zavodnik_obj.id_osoby, j.datum))
+        return zavody, jizdy
+
+    def _formatuj_vystup_pro_tabulku(self, zavody, jizdy):
+        """
+        Pomocná metoda: Převede objekty na seznam textových řádků pro Treeview.
+        Výstup: List n-tic (Datum, Typ, Jméno, Příjmení, Skupina, Trať, Čas, Umístění)
+        """
+        vystup = []
+        
+        # 1. Závody
+        for z in zavody:
+            vystup.append((
+                z.datum, "Závod", z.zavodnik_obj.jmeno, z.zavodnik_obj.prijmeni, 
+                z.zavodnik_obj.skupina, z.trat.jmeno_trati, z.cas, z.umisteni
+            ))
+            
+        # 2. Jízdy (Tréninky)
+        for j in jizdy:
+            vystup.append((
+                j.datum, "Trénink", j.zavodnik_obj.jmeno, j.zavodnik_obj.prijmeni, 
+                j.zavodnik_obj.skupina, j.trat.jmeno_trati, j.cas, "-"
+            ))
+        
+        # Pro tabulku řadíme podle data sestupně (nejnovější nahoře)
+        vystup.sort(key=lambda x: x[0], reverse=True)
+        return vystup
+
+    # ========================================================
+    # ČÁST C: Metody pro Frontend (Wrapper) - NOVÉ
+    # Tyto metody bude volat váš frontend.py pro naplnění tabulky
+    # ========================================================
+
+    def vrat_data_pro_tabulku_filtrovana(self, **kwargs):
+        """
+        Hlavní metoda pro frontend.
+        1. Zavolá filtr (najde objekty).
+        2. Zavolá formátování (převede na text).
+        """
+        z, j = self.filtruj(**kwargs)
+        return self._formatuj_vystup_pro_tabulku(z, j)
+
+    def vrat_vsechna_data_pro_tabulku(self):
+        """Vrátí úplně všechna data (např. při startu aplikace)."""
+        # Použijeme rovnou surová data a naformátujeme je
+        return self._formatuj_vystup_pro_tabulku(self._databaze_zavodu, self._databaze_jizd)
+
+
+    """ 
     # --------------------------------------------------------
     # 1) VYHLEDÁVÁNÍ PODLE JMEN / ID / SKUPINY / TRATĚ
     # --------------------------------------------------------
@@ -644,147 +784,47 @@ class Vyhledavani:
         ))
 
         return zavody, jizdy
+"""
+
+        # následující zápis je totéž zkrácenou formou
+
+    # ========================================================
+    # ČÁST D: Logika vyhledávání (Opraveno self.db -> self._databaze...)
+    # ========================================================
+
+    def dle_jmena(self, jmeno, prijmeni):
+        # OPRAVA: Místo self.db._databaze... voláme self._databaze...
+        zavody = [z for z in self._databaze_zavodu if z.zavodnik_obj.jmeno == jmeno and z.zavodnik_obj.prijmeni == prijmeni]
+        jizdy = [j for j in self._databaze_jizd if j.zavodnik_obj.jmeno == jmeno and j.zavodnik_obj.prijmeni == prijmeni]
+        return self._serad_vystup(zavody, jizdy)
 
     def dle_id_zavodnika(self, id_zavodnika):
-        zavody = []
-        jizdy = []
-
-        for z in self.db._databaze_zavodu:
-            if z.zavodnik_obj.id_osoby == id_zavodnika:
-                zavody.append(z)
-
-        for j in self.db._databaze_jizd:
-            if j.zavodnik_obj.id_osoby == id_zavodnika:
-                jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
-        return zavody, jizdy
+        zavody = [z for z in self._databaze_zavodu if z.zavodnik_obj.id_osoby == id_zavodnika]
+        jizdy = [j for j in self._databaze_jizd if j.zavodnik_obj.id_osoby == id_zavodnika]
+        return self._serad_vystup(zavody, jizdy)
 
     def dle_skupiny(self, skupina):
-
-        zavody = []
-        jizdy = []
-
-        for z in self.db._databaze_zavodu:
-            if z.zavodnik_obj.skupina == skupina:
-                zavody.append(z)
-
-        for j in self.db._databaze_jizd:
-            if j.zavodnik_obj.skupina == skupina:
-                jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
-        return zavody, jizdy
+        zavody = [z for z in self._databaze_zavodu if z.zavodnik_obj.skupina == skupina]
+        jizdy = [j for j in self._databaze_jizd if j.zavodnik_obj.skupina == skupina]
+        return self._serad_vystup(zavody, jizdy)
 
     def dle_trate(self, jmeno_trati):
-
-        zavody = []
-        jizdy = []
-
-        for z in self.db._databaze_zavodu:
-            if z.trat.jmeno_trati == jmeno_trati:
-                zavody.append(z)
-
-        for j in self.db._databaze_jizd:
-            if j.trat.jmeno_trati == jmeno_trati:
-                jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
-        return zavody, jizdy
-
-    # --------------------------------------------------------
-    # 2) VYHLEDÁVÁNÍ PODLE DATA / OBDOBÍ
-    # --------------------------------------------------------
+        zavody = [z for z in self._databaze_zavodu if z.trat.jmeno_trati == jmeno_trati]
+        jizdy = [j for j in self._databaze_jizd if j.trat.jmeno_trati == jmeno_trati]
+        return self._serad_vystup(zavody, jizdy)
 
     def dle_data(self, datum):
-
-        zavody = []
-        jizdy = []
-
-        for z in self.db._databaze_zavodu:
-            if z.datum == datum:
-                zavody.append(z)
-
-        for j in self.db._databaze_jizd:
-            if j.datum == datum:
-                jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
-        return zavody, jizdy
+        zavody = [z for z in self._databaze_zavodu if z.datum == datum]
+        jizdy = [j for j in self._databaze_jizd if j.datum == datum]
+        return self._serad_vystup(zavody, jizdy)
 
     def za_obdobi(self, datum_od, datum_do):
-
-        zavody = []
-        jizdy = []
-
-        for z in self.db._databaze_zavodu:
-            if datum_od <= z.datum <= datum_do:
-                zavody.append(z)
-
-        for j in self.db._databaze_jizd:
-            if datum_od <= j.datum <= datum_do:
-                jizdy.append(j)
-
-        zavody.sort(key=lambda z: (
-            z.trat.jmeno_trati,
-            z.zavodnik_obj.id_osoby,
-            z.datum
-        ))
-
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
-
-        return zavody, jizdy
+        zavody = [z for z in self._databaze_zavodu if datum_od <= z.datum <= datum_do]
+        jizdy = [j for j in self._databaze_jizd if datum_od <= j.datum <= datum_do]
+        return self._serad_vystup(zavody, jizdy)
 
     # --------------------------------------------------------
-    # 3) KOMBINOVANÉ VYHLEDÁVÁNÍ (praktické pro UI)
+    # UNIVERZÁLNÍ FILTR
     # --------------------------------------------------------
 
     def filtruj(self, jmeno=None, prijmeni=None, id_zavodnika=None,
@@ -797,55 +837,77 @@ class Vyhledavani:
         zavody = []
         jizdy = []
 
-        for z in self.db._databaze_zavodu:
-            if id_zavodnika is not None and z.zavodnik_obj.id_osoby != id_zavodnika:
-                continue
-            if jmeno is not None and z.zavodnik_obj.jmeno != jmeno:
-                continue
-            if prijmeni is not None and z.zavodnik_obj.prijmeni != prijmeni:
-                continue
-            if skupina is not None and z.zavodnik_obj.skupina != skupina:
-                continue
-            if trat is not None and z.trat.jmeno_trati != trat:
-                continue
-            if datum_od is not None and z.datum < datum_od:
-                continue
-            if datum_do is not None and z.datum > datum_do:
-                continue
-
+        # OPRAVA: Odstraněno "self.db." - data máme přímo v "self._databaze_zavodu"
+        for z in self._databaze_zavodu:
+            if id_zavodnika is not None and z.zavodnik_obj.id_osoby != id_zavodnika: continue
+            if jmeno is not None and z.zavodnik_obj.jmeno != jmeno: continue
+            if prijmeni is not None and z.zavodnik_obj.prijmeni != prijmeni: continue
+            if skupina is not None and z.zavodnik_obj.skupina != skupina: continue
+            if trat is not None and z.trat.jmeno_trati != trat: continue
+            if datum_od is not None and z.datum < datum_od: continue
+            if datum_do is not None and z.datum > datum_do: continue
             zavody.append(z)
 
-        for j in self.db._databaze_jizd:
-            if id_zavodnika is not None and j.zavodnik_obj.id_osoby != id_zavodnika:
-                continue
-            if jmeno is not None and j.zavodnik_obj.jmeno != jmeno:
-                continue
-            if prijmeni is not None and j.zavodnik_obj.prijmeni != prijmeni:
-                continue
-            if skupina is not None and j.zavodnik_obj.skupina != skupina:
-                continue
-            if trat is not None and j.trat.jmeno_trati != trat:
-                continue
-            if datum_od is not None and j.datum < datum_od:
-                continue
-            if datum_do is not None and j.datum > datum_do:
-                continue
-
+        for j in self._databaze_jizd:
+            if id_zavodnika is not None and j.zavodnik_obj.id_osoby != id_zavodnika: continue
+            if jmeno is not None and j.zavodnik_obj.jmeno != jmeno: continue
+            if prijmeni is not None and j.zavodnik_obj.prijmeni != prijmeni: continue
+            if skupina is not None and j.zavodnik_obj.skupina != skupina: continue
+            if trat is not None and j.trat.jmeno_trati != trat: continue
+            if datum_od is not None and j.datum < datum_od: continue
+            if datum_do is not None and j.datum > datum_do: continue
             jizdy.append(j)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         zavody.sort(key=lambda z: (
             z.trat.jmeno_trati,
             z.zavodnik_obj.id_osoby,
             z.datum
         ))
+=======
+        # Použití nové pomocné metody pro řazení (DRY princip)
+        return self._serad_vystup(zavody, jizdy)
+>>>>>>> 0d2e6b994394f09e3913e75f98ea3ab7fee9a449
 
-        jizdy.sort(key=lambda j: (
-            j.trat.jmeno_trati,
-            j.zavodnik_obj.id_osoby,
-            j.datum
-        ))
+    def najdi_nejlepsi_vykony(jizdy_df):
+        """
+        Najde nejlepší výkon každého závodníka na dané trati.
 
+        Args:
+            jizdy_df (pd.DataFrame): DataFrame obsahující sloupce 'id_zavodnika', 'trat', a 'cas'.
+
+        Returns:
+            pd.DataFrame: DataFrame obsahující pouze nejlepší výkony.
+        """
+        if not all(col in jizdy_df.columns for col in ['id_zavodnika', 'trat', 'cas']):
+            raise ValueError("DataFrame musí obsahovat sloupce 'id_zavodnika', 'trat' a 'cas'.")
+
+        # Převod času na sekundy pro porovnání
+        def time_to_seconds(time_str):
+            try:
+                parts = time_str.split(":")
+                minutes = int(parts[0])
+                seconds = float(parts[1].replace(",", "."))
+                return minutes * 60 + seconds
+            except (ValueError, AttributeError):
+                return float('inf')
+
+        # Přidání pomocného sloupce pro porovnání
+        jizdy_df = jizdy_df.copy()
+        jizdy_df['cas_v_sekundach'] = jizdy_df['cas'].apply(time_to_seconds)
+
+        # Výběr nejlepšího výkonu pro každého závodníka na každé trati
+        nejlepsi_vykony = jizdy_df.loc[
+            jizdy_df.groupby(['id_zavodnika', 'trat'])['cas_v_sekundach'].idxmin()
+        ]
+
+        # Odstranění pomocného sloupce
+        nejlepsi_vykony = nejlepsi_vykony.drop(columns=['cas_v_sekundach'])
+
+        return nejlepsi_vykony
+
+<<<<<<< HEAD
         return zavody, jizdy
 =======
         # Použití nové pomocné metody pro řazení (DRY princip)
@@ -889,3 +951,5 @@ class Vyhledavani:
         return nejlepsi_vykony
 
 >>>>>>> d185532 (odstranění nadbytečných souborů pro uložení do branch FINAL)
+=======
+>>>>>>> 0d2e6b994394f09e3913e75f98ea3ab7fee9a449
