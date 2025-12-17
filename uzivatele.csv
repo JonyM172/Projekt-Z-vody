@@ -1,4 +1,0 @@
-id_uzivatele,jmeno,email,role,detail_role,heslo_hash
-u001,Pavel Přísný,pavel@urad.gov,urednik,A-102,$pbkdf2-sha256$29000$lJKSci6F8L63VgqBMEaoVQ$kvDXwP8Lf7BSbwjaL2inJfp1ZtJUZbG9X4g50vRqTEE
-s001,Karel Nový,karel@email.cz,stavebnik,123456789,$pbkdf2-sha256$29000$CyFECAFgDOGcs3aulTIGwA$pEQQmS7lVltyUTA3u7AxLbe/yJANgSI18OZl.ovbPnc
-s002,Jana Pilná,jana@email.cz,stavebnik,987654321,$pbkdf2-sha256$29000$lbLWWgvh3BsjpBRiTOldiw$JCAzhvHM3woHkRHrbMSXpImcBf2FgOzpHaiDCqZuxSw
