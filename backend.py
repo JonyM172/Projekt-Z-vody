@@ -97,11 +97,6 @@ def zkontroluj_soubory():
 # Zavolání kontroly souborů při spuštění
 zkontroluj_soubory()
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> FINAL
 def inicializuj_aplikaci():
     """
     Zkontroluje Session State. Pokud data chybí (start aplikace nebo F5), načte je z CSV.
